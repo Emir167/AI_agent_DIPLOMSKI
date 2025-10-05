@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Subjects - AI Study Planner{% endblock %}
+
+{% block header_title %}My Subjects{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold mb-6">Your Subjects</h2>
+
+    <div class="grid md:grid-cols-2 gap-6">
+        <!-- Example Subject 1 -->
+        <div class="bg-white p-5 rounded-lg shadow hover:shadow-md transition">
+            <h3 class="text-xl font-semibold mb-2 text-purple-700">Inteligentni sistemi</h3>
+            <p class="text-gray-600 mb-4">Sticanje znanja iz mašinskog učenja u programskom jeziku R.</p>
+            <a href="{{ url_for('subject_detail', id=1) }}" class="inline-flex items-center text-purple-600 hover:underline">
+                <span>View Details</span>
+                <span class="material-icons ml-1 text-sm">arrow_forward</span>
+            </a>
+        </div>
+
+        <!-- Example Subject 2 -->
+        <div class="bg-white p-5 rounded-lg shadow hover:shadow-md transition">
+            <h3 class="text-xl font-semibold mb-2 text-purple-700">Neuronske mreže</h3>
+            <p class="text-gray-600 mb-4">Razume perceptrone, backpropagation i osnovne dubokog učenja.</p>
+            <a href="{{ url_for('subject_detail', id=2) }}" class="inline-flex items-center text-purple-600 hover:underline">
+                <span>View Details</span>
+                <span class="material-icons ml-1 text-sm">arrow_forward</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

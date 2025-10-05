@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Detalji o predmetu - AI Study Buddy{% endblock %}
+{% block header_title %}Predmet #{{ subject_id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <!-- Info -->
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-purple-700">Predmet #{{ subject_id }}</h2>
+    <p class="text-gray-600">Upload materials, ask AI about this subject, and generate quizzes.</p>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="bg-white p-5 rounded-lg shadow mb-6">
+    <h3 class="text-lg font-semibold mb-3">Quick Actions</h3>
+    <div class="flex flex-wrap gap-3">
+      <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition" id="btn-upload-focus">
+        📂 Uploaduj materijale
+      </button>
+      <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition" id="btn-ask-ai">
+        🧠 Pitaj AI za ovaj predmet
+      </button>
+      <button class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition" id="btn-generate-quiz">
+        📝 Generisi kviz
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Upload card -->
+  <div class="bg-white p-5 rounded-lg shadow mb-6" id="upload-card">
+    <h3 class="text-lg font-semibold mb-3">Upload-uj materijale</h3>
+    <form id="upload-form" class="space-y-3" enctype="multipart/form-data">
+      <input id="file-input" name="files" type="file" multiple class="block w-full text-sm text-gray-700" />
+      <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition">
+        Upload
+      </button>
+      <span id="upload-status" class="text-sm text-gray-500"></span>
+    </form>
+  </div>
+
+  <!-- Files list -->
+  <div class="bg-white p-5 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">Documents</h3>
+      <button id="refresh-btn" class="text-purple-600 hover:underline">Refresh</button>
+    </div>
+    <div id="files-container" class="space-y-2"></div>
+    <div id="empty-state" class="text-gray-500 text-sm">No documents yet. Upload some PDF/TXT/DOCX files above.</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const subjectId = {{ subject_id|tojson }};
+  const filesContainer = document.getElementById('files-container');
+  const emptyState = document.getElementById('empty-state');
+  const uploadForm = document.getElementById('upload-form');
+  const fileInput = document.getElementById('file-input');
+  const statusEl = document.getElementById('upload-status');
+  const refreshBtn = document.getElementById('refresh-btn');
+
+  function renderFiles(files) {
+    filesContainer.innerHTML = '';
+    if (!files || files.length === 0) {
+      emptyState.style.display = 'block';
+      return;
+    }
+    emptyState.style.display = 'none';
+
+    files.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between border rounded p-3 hover:bg-gray-50 transition';
+
+      row.innerHTML = `
+        <div class="flex items-center">
+          <span class="material-icons text-gray-500 mr-3">insert_drive_file</span>
+          <a href="${f.url}" target="_blank" class="text-purple-700 hover:underline">${f.name}</a>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="${f.url}" target="_blank" class="text-sm text-gray-600 hover:text-gray-800">Open</a>
+          <button class="text-red-600 hover:text-red-800 delete-btn" data-filename="${f.name}">
+            <span class="material-icons text-sm">delete</span>
+          </button>
+        </div>
+      `;
+      filesContainer.appendChild(row);
+    });
+
+    // Veži event za delete dugmad
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filename = btn.dataset.filename;
+        if (confirm(`Delete "${filename}"?`)) {
+          fetch(`/api/predmet/${subjectId}/documents/${filename}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+              if (data.ok) loadFiles();
+              else alert(data.error || 'Error deleting file');
+            })
+            .catch(() => alert('Error deleting file'));
+        }
+      });
+    });
+  }
+
+  function loadFiles() {
+    fetch(`/api/predmet/${subjectId}/documents`)
+      .then(res => res.json())
+      .then(data => renderFiles(data.files))
+      .catch(() => {});
+  }
+
+  uploadForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const files = fileInput.files;
+    if (!files.length) return;
+
+    const formData = new FormData();
+    for (const f of files) formData.append('files', f);
+
+    statusEl.textContent = 'Uploading...';
+    fetch(`/api/predmet/${subjectId}/upload`, { method: 'POST', body: formData })
+      .then(res => res.json())
+      .then(data => {
+        statusEl.textContent = data.ok ? `Uploaded ${data.count} file(s)` : 'Upload failed';
+        loadFiles();
+      })
+      .catch(() => { statusEl.textContent = 'Upload error'; });
+  });
+
+  refreshBtn.addEventListener('click', loadFiles);
+  loadFiles();
+});
+</script>
+
+{% endblock %}

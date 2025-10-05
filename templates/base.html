@@ -11,19 +11,19 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
     <div class="flex flex-1">
-        <aside id="sidebar" class="bg-purple-800 text-white w-64 flex-shrink-0 transform transition-all duration-300 ease-in-out overflow-y-auto">
+        <aside id="sidebar" class="bg-blue-900 text-white w-64 flex-shrink-0 transform transition-all duration-300 ease-in-out overflow-y-auto">
             <div class="p-4">
                 <h1 class="text-2xl font-bold mb-8">AI Study Buddy</h1>
                 <nav>
                     <ul>
                         <li class="mb-3">
-                            <a href="{{ url_for('index') }}" class="flex items-center p-2 rounded-md hover:bg-purple-700 transition-colors {% if request.path == url_for('index') %}bg-purple-700{% endif %}">
+                            <a href="{{ url_for('index') }}" class="flex items-center p-2 rounded-md hover:bg-blue-700 transition-colors {% if request.path == url_for('index') %}bg-blue-700{% endif %}">
                                 <span class="material-icons mr-3">chat</span>
                                 <span>General Chat</span>
                             </a>
                         </li>
                         <li class="mb-3">
-                            <a href="{{ url_for('subjects_list') }}" class="flex items-center p-2 rounded-md hover:bg-purple-700 transition-colors {% if '/predmet' in request.path %}bg-purple-700{% endif %}">
+                            <a href="{{ url_for('subjects_list') }}" class="flex items-center p-2 rounded-md hover:bg-blue-700 transition-colors {% if '/predmet' in request.path %}bg-blue-700{% endif %}">
                                 <span class="material-icons mr-3">book</span>
                                 <span>Predmeti</span>
                             </a>
