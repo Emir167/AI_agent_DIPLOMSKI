@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Journal - Study Buddy{% endblock %}
+{% block header_title %}Journal{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+
+  <!-- New entry -->
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-lg font-semibold mb-3">Add Journal Entry</h3>
+    <form id="journal-form" class="space-y-3">
+      <textarea id="journal-text" rows="4" class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500" placeholder="What did you study / plan / promise?"></textarea>
+      <div class="flex items-center gap-3">
+        <input id="journal-subject" type="number" class="border rounded p-2 w-32" placeholder="Subject ID (opt.)"/>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
+        <span id="journal-status" class="text-sm text-gray-500"></span>
+      </div>
+    </form>
+  </div>
+
+  <!-- List -->
+  <div class="bg-white p-5 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">Recent Entries</h3>
+      <button id="refresh-btn" class="text-blue-600 hover:underline">Refresh</button>
+    </div>
+    <div id="journal-list" class="space-y-3">
+      <!-- entries -->
+    </div>
+    <div id="empty-state" class="text-gray-500 text-sm">No entries yet. Add your first one above.</div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('journal-form');
+  const text = document.getElementById('journal-text');
+  const subj = document.getElementById('journal-subject');
+  const statusEl = document.getElementById('journal-status');
+  const list = document.getElementById('journal-list');
+  const empty = document.getElementById('empty-state');
+  const refreshBtn = document.getElementById('refresh-btn');
+
+  function fmt(dstr){
+    try { return new Date(dstr).toLocaleString(); } catch { return dstr; }
+  }
+
+  function render(items){
+    list.innerHTML = '';
+    if(!items || items.length === 0){ empty.style.display='block'; return; }
+    empty.style.display='none';
+    items.forEach(it => {
+      const div = document.createElement('div');
+      div.className = 'border rounded p-3';
+      div.innerHTML = `
+        <div class="text-sm text-gray-500 mb-1">${fmt(it.timestamp)}${it.subject_id ? ' • Subject #'+it.subject_id : ''}</div>
+        <div class="text-gray-800 whitespace-pre-wrap">${(it.text||'').trim()}</div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  function load(){
+    fetch('/api/journal')
+      .then(r=>r.json())
+      .then(d=>render(d.items))
+      .catch(()=>{});
+  }
+
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const payload = { text: text.value.trim(), subject_id: subj.value ? Number(subj.value) : null };
+    if(!payload.text) return;
+
+    statusEl.textContent = 'Saving...';
+    fetch('/api/journal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+      .then(r=>r.json())
+      .then(()=>{
+        statusEl.textContent = 'Saved.';
+        text.value = ''; subj.value = '';
+        load();
+        setTimeout(()=>statusEl.textContent='', 1200);
+      })
+      .catch(()=>{ statusEl.textContent='Error.'; });
+  });
+
+  refreshBtn.addEventListener('click', load);
+  load();
+});
+</script>
+{% endblock %}

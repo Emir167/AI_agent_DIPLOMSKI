@@ -1,29 +1,128 @@
 {% extends "base.html" %}
 
 {% block title %}General Chat - Study Buddy{% endblock %}
-
 {% block header_title %}General Chat{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto flex flex-col h-full">
-    <div id="chat-messages" class="flex-1 overflow-y-auto mb-4 p-4 bg-white rounded-lg shadow space-y-4">
-        <div class="chat-message flex">
-            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white flex-shrink-0 mr-3">
-                <span class="material-icons">smart_toy</span>
-            </div>
-            <div class="message-content bg-blue-100 p-3 rounded-lg max-w-3xl">
-                <p>Zdravo! Ja sam tvoj Study Buddy🤖. Kako ti mogu pomoci danas?</p>
-            </div>
-        </div>
-    </div>
+<div class="max-w-4xl mx-auto flex flex-col h-full space-y-4">
 
-    <div class="bg-white p-4 rounded-lg shadow">
-        <form id="chat-form" class="flex items-end">
-            <textarea id="user-input" class="flex-1 border rounded-lg resize-none p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[50px]" placeholder="Otkucajte Vasu poruku ovde..." rows="2"></textarea>
-            <button type="submit" class="ml-2 bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors">
-                <span class="material-icons">send</span>
-            </button>
-        </form>
+  <!-- Daily Motivation -->
+  <div class="bg-white p-4 rounded-lg shadow flex items-start gap-3">
+    <span class="material-icons text-yellow-500">auto_awesome</span>
+    <div>
+      <h3 class="font-semibold mb-1">Motivacija dana</h3>
+      <p id="motivation-text" class="text-gray-700">Loading...</p>
     </div>
+  </div>
+
+  <!-- Chat area -->
+  <div id="chat-messages" class="flex-1 overflow-y-auto p-4 bg-white rounded-lg shadow space-y-4">
+    <!-- Welcome message -->
+    <div class="chat-message flex">
+      <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white flex-shrink-0 mr-3">
+        <span class="material-icons">smart_toy</span>
+      </div>
+      <div class="message-content bg-blue-100 p-3 rounded-lg max-w-3xl">
+        <p>Zdravo! Ja sam tvoj Study Buddy 🤖. Kako ti mogu pomoći danas?</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="bg-white p-4 rounded-lg shadow">
+    <form id="chat-form" class="flex items-end">
+      <textarea
+        id="user-input"
+        class="flex-1 border rounded-lg resize-none p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[50px]"
+        placeholder="Otkucaj poruku..."
+        rows="2"
+      ></textarea>
+      <button
+        type="submit"
+        class="ml-2 bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors"
+      >
+        <span class="material-icons">send</span>
+      </button>
+    </form>
+
+    <!-- Typing indicator -->
+    <div id="typing-indicator" class="hidden mt-2 text-sm text-gray-500 flex items-center gap-1">
+      <span class="material-icons animate-pulse">more_horiz</span>
+      <span>AI razmišlja...</span>
+    </div>
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // --- Daily Motivation ---
+  fetch('/api/motivational')
+    .then(r => r.json())
+    .then(d => { document.getElementById('motivation-text').textContent = d.value || 'Danas je tvoj dan!'; })
+    .catch(() => { document.getElementById('motivation-text').textContent = 'Danas je tvoj dan!'; });
+
+  // --- Chat ---
+  const chatForm = document.getElementById('chat-form');
+  const userInput = document.getElementById('user-input');
+  const chatMessages = document.getElementById('chat-messages');
+  const typingIndicator = document.getElementById('typing-indicator');
+
+  userInput.addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+  });
+  userInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      chatForm.dispatchEvent(new Event('submit'));
+    }
+  });
+
+  chatForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const message = userInput.value.trim();
+    if (!message) return;
+
+    addMessage(message, 'user');
+    userInput.value = '';
+    userInput.style.height = 'auto';
+    typingIndicator.classList.remove('hidden');
+    scrollToBottom();
+
+    fetch('/api/chat/general', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    })
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => {
+        typingIndicator.classList.add('hidden');
+        addMessage(data.response || '✅ (Stub) Primio sam poruku.', 'ai');
+        scrollToBottom();
+      })
+      .catch(() => {
+        typingIndicator.classList.add('hidden');
+        addMessage('⚠️ Trenutno nema odgovora sa servera. (Proveri /api/chat/general)', 'ai', true);
+        scrollToBottom();
+      });
+  });
+
+  function addMessage(content, sender, isError = false) {
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-message flex ' + (sender === 'user' ? 'justify-end' : '');
+    const icon = sender === 'user' ? 'person' : 'smart_toy';
+    const bubble = isError ? 'bg-red-100' : 'bg-blue-100';
+    const badge = 'bg-blue-500';
+    const leftAvatar = `<div class="w-10 h-10 rounded-full ${badge} flex items-center justify-center text-white flex-shrink-0 mr-3"><span class="material-icons">${icon}</span></div>`;
+    const rightAvatar = `<div class="w-10 h-10 rounded-full ${badge} flex items-center justify-center text-white flex-shrink-0 ml-3"><span class="material-icons">${icon}</span></div>`;
+    wrap.innerHTML = `${sender === 'user' ? '' : leftAvatar}
+      <div class="message-content ${bubble} p-3 rounded-lg max-w-3xl"><p>${content.replace(/\n/g,'<br>')}</p></div>
+      ${sender === 'user' ? rightAvatar : ''}`;
+    chatMessages.appendChild(wrap);
+  }
+  function scrollToBottom(){ chatMessages.scrollTop = chatMessages.scrollHeight; }
+});
+</script>
 {% endblock %}

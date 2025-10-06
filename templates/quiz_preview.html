@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Kviz - Study Buddy{% endblock %}
+{% block header_title %}Kviz{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- Config -->
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-lg font-semibold mb-3">Generiši kviz</h3>
+    <form id="quiz-form" class="space-y-3">
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Oblast</label>
+          <input id="q-topic" type="text" class="w-full border rounded p-2" placeholder="e.g. Linear Algebra — Matrices" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Broj pitanja</label>
+          <input id="q-count" type="number" min="1" max="30" value="5" class="w-full border rounded p-2" />
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-3">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Tip</label>
+          <select id="q-type" class="w-full border rounded p-2">
+            <option value="mcq">Više tačnih odgovora</option>
+            <option value="tf">Tačno/Netačno</option>
+            <option value="short">Kratak odgovor</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Težina</label>
+          <select id="q-diff" class="w-full border rounded p-2">
+            <option value="easy">Lako</option>
+            <option value="medium" selected>Srednje</option>
+            <option value="hard">Teško</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">ID predmeta (opciono)</label>
+          <input id="q-subject" type="number" class="w-full border rounded p-2" placeholder="npr. 1" />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Generate</button>
+        <span id="q-status" class="text-sm text-gray-500"></span>
+      </div>
+    </form>
+  </div>
+
+  <!-- Result -->
+  <div class="bg-white p-5 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">Quiz</h3>
+      <div class="flex gap-2">
+        <button id="reveal-btn" class="px-3 py-2 text-sm rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50" disabled>Prikaži odgovore</button>
+        <button id="export-json" class="px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" disabled>Export-uj JSON</button>
+        <button id="export-txt" class="px-3 py-2 text-sm rounded bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50" disabled>Export-uj TXT</button>
+      </div>
+    </div>
+
+    <div id="quiz-list" class="space-y-4"></div>
+    <div id="quiz-empty" class="text-gray-500 text-sm">Još uvek nema pitanja.</div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('quiz-form');
+  const topic = document.getElementById('q-topic');
+  const count = document.getElementById('q-count');
+  const qtype = document.getElementById('q-type');
+  const qdiff = document.getElementById('q-diff');
+  const qsubject = document.getElementById('q-subject');
+  const statusEl = document.getElementById('q-status');
+
+  const list = document.getElementById('quiz-list');
+  const empty = document.getElementById('quiz-empty');
+  const revealBtn = document.getElementById('reveal-btn');
+  const exportJsonBtn = document.getElementById('export-json');
+  const exportTxtBtn = document.getElementById('export-txt');
+
+  let lastQuiz = null;
+  let revealed = false;
+
+  function render(questions){
+    list.innerHTML = '';
+    if(!questions || questions.length === 0){
+      empty.style.display = 'block';
+      revealBtn.disabled = true;
+      exportJsonBtn.disabled = true;
+      exportTxtBtn.disabled = true;
+      return;
+    }
+    empty.style.display = 'none';
+    revealBtn.disabled = false;
+    exportJsonBtn.disabled = false;
+    exportTxtBtn.disabled = false;
+
+    questions.forEach((q, idx) => {
+      const card = document.createElement('div');
+      card.className = 'border rounded p-4';
+      const choicesHtml = (q.choices || []).map((c,i)=>`
+        <label class="block">
+          <input type="radio" name="q${idx}" value="${i}" class="mr-2">
+          <span>${c}</span>
+        </label>`).join('');
+
+      const answerBlock = `
+        <div class="mt-2 text-sm ${revealed ? 'block' : 'hidden'} answer-block">
+          <div class="font-medium ${revealed ? 'text-green-700' : ''}">Answer: ${q.answer_label || q.answer}</div>
+          ${q.explanation ? `<div class="text-gray-700">Explanation: ${q.explanation}</div>` : ''}
+        </div>
+      `;
+
+      card.innerHTML = `
+        <div class="font-semibold mb-2">${idx+1}. ${q.question}</div>
+        ${q.type === 'mcq' ? `<div class="space-y-1">${choicesHtml}</div>` : ''}
+        ${q.type === 'tf' ? `
+          <div class="space-x-3">
+            <label><input type="radio" name="q${idx}" value="true" class="mr-1">True</label>
+            <label><input type="radio" name="q${idx}" value="false" class="mr-1">False</label>
+          </div>` : ''}
+        ${q.type === 'short' ? `<input type="text" class="mt-1 w-full border rounded p-2" placeholder="Your answer" />` : ''}
+        ${answerBlock}
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  function download(filename, text){
+    const blob = new Blob([text], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 300);
+  }
+
+  revealBtn.addEventListener('click', ()=>{
+    revealed = true;
+    document.querySelectorAll('.answer-block').forEach(el => el.classList.remove('hidden'));
+  });
+
+  exportJsonBtn.addEventListener('click', ()=>{
+    if(!lastQuiz) return;
+    download('quiz.json', JSON.stringify(lastQuiz, null, 2));
+  });
+
+  exportTxtBtn.addEventListener('click', ()=>{
+    if(!lastQuiz) return;
+    const lines = lastQuiz.questions.map((q,i)=>{
+      const choices = (q.choices||[]).map((c,idx)=>`  ${String.fromCharCode(65+idx)}. ${c}`).join('\n');
+      return `${i+1}. ${q.question}\n${choices}${q.answer_label ? `\nAnswer: ${q.answer_label}` : q.answer ? `\nAnswer: ${q.answer}` : ''}${q.explanation? `\nExplanation: ${q.explanation}`:''}`;
+    }).join('\n\n');
+    download('quiz.txt', lines);
+  });
+
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    revealed = false;
+    statusEl.textContent = 'Generating...';
+
+    const payload = {
+      topic: topic.value.trim(),
+      count: Number(count.value || 5),
+      type: qtype.value,
+      difficulty: qdiff.value,
+      subject_id: qsubject.value ? Number(qsubject.value) : null
+    };
+
+    fetch('/api/quiz/generate', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        lastQuiz = d;
+        render(d.questions);
+        statusEl.textContent = 'Done.';
+        setTimeout(()=>statusEl.textContent='', 1000);
+      })
+      .catch(() => {
+        // fallback lokalno – ako nema backend rute
+        const dummy = makeDummy(payload);
+        lastQuiz = dummy;
+        render(dummy.questions);
+        statusEl.textContent = 'Stub generated (no backend).';
+        setTimeout(()=>statusEl.textContent='', 1500);
+      });
+  });
+
+  // lokalni stub, ako backend fali
+  function makeDummy({topic, count, type, difficulty}){
+    const n = Math.max(1, Math.min(30, count||5));
+    const qs = [];
+    for(let i=0;i<n;i++){
+      if(type === 'tf'){
+        const ans = Math.random()>0.5 ? 'True' : 'False';
+        qs.push({
+          id: i+1, type:'tf',
+          question: `[${difficulty}] (${topic||'General'}) Statement ${i+1}: ... ?`,
+          answer: ans,
+          explanation: 'This is a stub explanation.'
+        });
+      } else if (type === 'short'){
+        qs.push({
+          id: i+1, type:'short',
+          question: `[${difficulty}] (${topic||'General'}) Define concept ${i+1}.`,
+          answer: 'Stub answer',
+          explanation: 'This is a stub explanation.'
+        });
+      } else { // mcq
+        const choices = ['Option A','Option B','Option C','Option D'];
+        const correct = Math.floor(Math.random()*choices.length);
+        qs.push({
+          id: i+1, type:'mcq',
+          question: `[${difficulty}] (${topic||'General'}) Question ${i+1}?`,
+          choices,
+          answer_index: correct,
+          answer_label: String.fromCharCode(65+correct),
+          explanation: 'This is a stub explanation.'
+        });
+      }
+    }
+    return { ok:true, questions: qs, meta:{topic, count:n, type, difficulty} };
+  }
+});
+</script>
+{% endblock %}

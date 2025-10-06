@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Timetable - Study Buddy{% endblock %}
+{% block header_title %}Timetable{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- Form -->
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-lg font-semibold mb-3">Generate Study Timetable</h3>
+    <form id="tt-form" class="space-y-3">
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Timeframe</label>
+          <input id="tt-timeframe" type="text" class="w-full border rounded p-2" placeholder="next 7 days"/>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Scope / Focus</label>
+          <input id="tt-scope" type="text" class="w-full border rounded p-2" placeholder="Exam prep: Algebra & DS"/>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Generate</button>
+        <button id="tt-export" type="button" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50" disabled>Export .ics</button>
+        <span id="tt-status" class="text-sm text-gray-500"></span>
+      </div>
+    </form>
+  </div>
+
+  <!-- Result -->
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-lg font-semibold mb-3">Plan</h3>
+    <div id="tt-overview" class="text-gray-700 mb-3"></div>
+    <div id="tt-list" class="space-y-3"></div>
+    <div id="tt-empty" class="text-gray-500 text-sm">No timetable yet. Fill the form above and click Generate.</div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('tt-form');
+  const timeframe = document.getElementById('tt-timeframe');
+  const scope = document.getElementById('tt-scope');
+  const statusEl = document.getElementById('tt-status');
+  const list = document.getElementById('tt-list');
+  const empty = document.getElementById('tt-empty');
+  const overview = document.getElementById('tt-overview');
+  const exportBtn = document.getElementById('tt-export');
+
+  let lastTimetable = null;
+
+  function render(tt){
+    list.innerHTML = '';
+    if(!tt || !Array.isArray(tt.timetable) || tt.timetable.length===0){
+      empty.style.display = 'block';
+      exportBtn.disabled = true;
+      overview.textContent = '';
+      return;
+    }
+    empty.style.display = 'none';
+    exportBtn.disabled = false;
+    overview.textContent = tt.overview || '';
+
+    tt.timetable.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'border rounded p-3';
+      div.innerHTML = `
+        <div class="text-sm text-gray-500 mb-1">${s.day || ''} ${s.date || ''} ${s.time || ''}</div>
+        <div class="font-medium mb-1">Topics: ${(Array.isArray(s.topics)? s.topics.join(', ') : (s.topics||''))}</div>
+        ${s.activities ? `<div class="text-gray-700 mb-1">Activities: ${(Array.isArray(s.activities)? s.activities.join(', ') : s.activities)}</div>` : ''}
+        <div class="text-sm ${s.has_conflict ? 'text-red-600' : 'text-green-600'}">
+          ${s.has_conflict ? ('Conflict: ' + (s.conflict_details || 'Yes')) : 'No conflict'}
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const payload = { timeframe: timeframe.value || 'next 7 days', scope: scope.value || '' };
+    statusEl.textContent = 'Generating...';
+
+    fetch('/api/timetable/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+      .then(r=>r.json())
+      .then(d=>{
+        lastTimetable = d;
+        statusEl.textContent = 'Done.';
+        render(d);
+        setTimeout(()=>statusEl.textContent='', 1200);
+      })
+      .catch(()=>{ statusEl.textContent = 'Error.'; });
+  });
+
+  exportBtn.addEventListener('click', ()=>{
+    if(!lastTimetable) return;
+    fetch('/api/timetable/ics', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(lastTimetable) })
+      .then(r => r.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'study_timetable.ics';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=> window.URL.revokeObjectURL(url), 500);
+      })
+      .catch(()=>{ /* ignore */ });
+  });
+});
+</script>
+{% endblock %}

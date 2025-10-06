@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Research Assistant{% endblock %}
+{% block header_title %}Research Assistant{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-lg font-semibold mb-3">Literature Review</h3>
+    <form id="ra-form" class="space-y-3">
+      <input id="ra-query" type="text" class="w-full border rounded p-2"
+             placeholder="Enter your literature review topic/query..." />
+      <div class="flex items-center gap-3">
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Run</button>
+        <span id="ra-status" class="text-sm text-gray-500"></span>
+      </div>
+    </form>
+  </div>
+
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-lg font-semibold mb-3">Report</h3>
+    <div id="ra-loading" class="hidden text-sm text-gray-500">Generating report...</div>
+    <article id="ra-report" class="prose max-w-none"></article>
+    <div id="ra-empty" class="text-gray-500 text-sm">No report yet. Submit a query above.</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  const form = document.getElementById('ra-form');
+  const input = document.getElementById('ra-query');
+  const statusEl = document.getElementById('ra-status');
+  const loading = document.getElementById('ra-loading');
+  const report = document.getElementById('ra-report');
+  const empty = document.getElementById('ra-empty');
+
+  function renderMarkdown(md){
+    // ultra-simple: line breaks -> <br>; **bold**; *italic* (po želji kasnije ubaci marked.js)
+    const html = md
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n$/g, '<br>');
+    return html;
+  }
+
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const q = input.value.trim();
+    if(!q) return;
+
+    empty.style.display = 'none';
+    report.innerHTML = '';
+    loading.classList.remove('hidden');
+    statusEl.textContent = 'Working...';
+
+    fetch('/api/research-assistant/run', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ query: q })
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        statusEl.textContent = 'Done.';
+        loading.classList.add('hidden');
+        const md = d.markdown || d.report || d.content || 'No content';
+        report.innerHTML = renderMarkdown(md);
+        setTimeout(()=>statusEl.textContent='', 1200);
+      })
+      .catch(()=>{
+        statusEl.textContent = 'Error.';
+        loading.classList.add('hidden');
+        empty.style.display = 'block';
+      });
+  });
+});
+</script>
+{% endblock %}
