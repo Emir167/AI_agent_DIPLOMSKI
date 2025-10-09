@@ -99,12 +99,12 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(res => res.ok ? res.json() : Promise.reject())
       .then(data => {
         typingIndicator.classList.add('hidden');
-        addMessage(data.response || '✅ (Stub) Primio sam poruku.', 'ai');
+        addMessage(data.response || 'Primio sam poruku.', 'ai');
         scrollToBottom();
       })
       .catch(() => {
         typingIndicator.classList.add('hidden');
-        addMessage('⚠️ Trenutno nema odgovora sa servera. (Proveri /api/chat/general)', 'ai', true);
+        addMessage('Trenutno nema odgovora sa servera. (Proveri /api/chat/general)', 'ai', true);
         scrollToBottom();
       });
   });
