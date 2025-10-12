@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Topic Explanation</h2>
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="text-muted small mb-2">1 min read</div>
+    <h5 class="mb-2">Explanation</h5>
+    <p>{{ data.explanation }}</p>
+    <div class="border rounded p-3 bg-light">
+      <h6 class="mb-2">Key Analogy</h6>
+      <p class="mb-0">{{ data.analogy }}</p>
+    </div>
+    <a class="btn btn-outline-secondary mt-3" href="{{ url_for('explain_topic') }}">Back</a>
+  </div>
+</div>
+{% endblock %}

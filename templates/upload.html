@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Upload Study Materials</h2>
+<p class="text-muted">Upload PDF or TXT files to get started.</p>
+<form method="post" enctype="multipart/form-data" class="card p-4 shadow-sm">
+<div class="mb-3">
+<input class="form-control" type="file" name="file" accept=".pdf,.txt" required>
+</div>
+<button class="btn btn-primary">Upload</button>
+</form>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Explain Topic</h2>
+<form method="post" class="card p-4 shadow-sm">
+  <label class="form-label">What would you like explained?</label>
+  <input class="form-control mb-3" type="text" name="topic" placeholder="e.g., K-means clustering">
+  <button class="btn btn-primary">Explain Topic</button>
+</form>
+{% endblock %}

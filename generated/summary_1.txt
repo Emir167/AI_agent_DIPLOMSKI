@@ -1,0 +1,6 @@
+**Utjecaj Veštačke Inteligencije na Obrazovanje**
+Veštačka inteligencija (AI) ima značajan utjecaj na obrazovanje, omogućavajući personalizovano i adaptivno učenje. Tradicionalni pristupi učenja ne uzimaju u obzir individualne razlike u sposobnostima, motivaciji i predznanju, što dovodi do nedostatka angažovanja i slabijih rezultata. Zbog toga, koncept personalizovanog i adaptivnog učenja postaje sve važniji.
+
+Razvoj AI agenata i sistema baziranih na mašinskom i dubokom učenju omogućava dinamičniji i interaktivniji obrazovni proces. AI agenti mogu analizirati podatke o studentu, pratiti njegovu aktivnost i napredak, i prilagoditi tempo i način učenja prema njegovim sposobnostima i ciljevima. Ovi sistemi također omogućavaju bolje razumevanje gradiva, pravovremeno dobijanje povratnih informacija i usmeravanje pažnje na oblasti kojima je potrebno posvetiti dodatnu pažnju.
+
+**Approximate word count: 150**

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>{{ plan.title }}</h2>
+<p class="text-muted">Range: {{ plan.start_date }} → {{ plan.end_date }} • Pages: {{ plan.total_pages }} • Strategy: {{ plan.strategy }}</p>
+
+<div class="list-group">
+  {% for s in sessions %}
+  <form method="post" action="{{ url_for('planner_toggle', session_id=s.id) }}" class="list-group-item d-flex justify-content-between align-items-center">
+    <div>
+      <div class="small text-muted">{{ s.date }} • {{ s.window }} • {{ s.kind|capitalize }}</div>
+      <div>{{ s.topic }} {% if s.target_pages %}— target {{ s.target_pages }} pages{% endif %}</div>
+    </div>
+    <button class="btn btn-sm {% if s.completed %}btn-success{% else %}btn-outline-secondary{% endif %}">
+      {% if s.completed %}Done{% else %}Mark done{% endif %}
+    </button>
+  </form>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Study Flashcards</h2>
+{% if not cards %}
+  <div class="alert alert-info">No flashcards yet.</div>
+{% endif %}
+<div class="d-grid gap-3">
+  {% for c in cards %}
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between">
+        <div class="fw-semibold">Card {{ loop.index }}</div>
+        <form method="post" action="{{ url_for('flashcards_mark', card_id=c.id) }}">
+          <button class="btn btn-sm {% if c.known %}btn-success{% else %}btn-outline-secondary{% endif %}">
+            {% if c.known %}Known{% else %}Mark Known{% endif %}
+          </button>
+        </form>
+      </div>
+      <p class="mt-2"><strong>Q:</strong> {{ c.front }}</p>
+      <details>
+        <summary class="text-primary">Show Answer</summary>
+        <p class="mt-2"><strong>A:</strong> {{ c.back }}</p>
+      </details>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

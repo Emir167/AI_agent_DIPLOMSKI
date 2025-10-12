@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Create Study Plan</h2>
+<form method="post" action="{{ url_for('planner_create') }}" class="card p-4 shadow-sm">
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Document</label>
+      <select name="document_id" class="form-select" required>
+        {% for d in docs %}
+          <option value="{{ d.id }}">{{ d.filename }} (pages: {{ d.page_count or 'est.' }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Start</label>
+      <input type="date" name="start_date" class="form-control" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">End</label>
+      <input type="date" name="end_date" class="form-control" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Daily minutes</label>
+      <input type="number" name="daily_minutes" value="90" min="30" step="15" class="form-control">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Preferred start</label>
+      <input type="time" name="pref_start" value="{{ profile.pref_start if profile else '18:00' }}" class="form-control">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Preferred end</label>
+      <input type="time" name="pref_end" value="{{ profile.pref_end if profile else '20:00' }}" class="form-control">
+    </div>
+  </div>
+
+  <hr>
+  <h5>Profile</h5>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">Level</label>
+      <select name="level" class="form-select">
+        <option>High school</option><option selected>Undergraduate</option><option>Master</option><option>PhD</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Learning style</label>
+      <select name="learning_style" class="form-select">
+        <option>visual</option><option>auditory</option><option>reading</option><option>kinesthetic</option><option selected>mixed</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Goals</label>
+      <input type="text" name="goals" placeholder="e.g. GPA 9.0" class="form-control">
+    </div>
+    <div class="col-12">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" rows="3" class="form-control" placeholder="part-time work, motivation issues..."></textarea>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <button class="btn btn-success">Create Plan</button>
+  </div>
+</form>
+{% endblock %}

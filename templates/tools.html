@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="mb-4">AI Study Tools</h2>
+
+<div class="row g-4">
+
+  <!-- Summaries -->
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Summarize Notes</h5>
+        <p class="text-muted">Create a concise summary with key concepts.</p>
+        <a class="btn btn-primary" href="{{ url_for('create_summary', doc_id=sidebar_docs[0].id) if sidebar_docs else url_for('upload') }}">
+          Create Summary (latest upload)
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiz -->
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Generate Quiz</h5>
+        <p class="text-muted">Create practice questions from your uploaded content.</p>
+        {% if sidebar_docs %}
+          <a class="btn btn-primary" href="{{ url_for('quiz_config', doc_id=sidebar_docs[0].id) }}">Configure &amp; Generate</a>
+        {% else %}
+          <a class="btn btn-outline-secondary disabled">Upload content first</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Flashcards -->
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Create Flashcards</h5>
+        <p class="text-muted">Spaced repetition from your notes.</p>
+        {% if sidebar_docs %}
+          <a class="btn btn-primary" href="{{ url_for('flashcards_config', doc_id=sidebar_docs[0].id) }}">Configure</a>
+          <a class="btn btn-outline-primary" href="{{ url_for('flashcards_view', doc_id=sidebar_docs[0].id) }}">View Cards</a>
+        {% else %}
+          <a class="btn btn-outline-secondary disabled">Upload content first</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW: Planner -->
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Personalized Study Planner</h5>
+        <p class="text-muted">Plan learning + reviews by days, time windows, difficulty & goals.</p>
+        <a class="btn btn-success" href="{{ url_for('planner_form') }}">Open Planner</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW: Coach -->
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Study Coach (Chat)</h5>
+        <p class="text-muted">Ask questions grounded in your materials & plan.</p>
+        <a class="btn btn-info" href="{{ url_for('coach_view') }}">Open Chat</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
