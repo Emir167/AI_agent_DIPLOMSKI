@@ -70,15 +70,22 @@ class GroqProvider(AIProvider):
     
     def summarize(self, text: str) -> dict:
         system_prompt = (
-            "You are an academic summarizer. Summarize the following text in concise, clear paragraphs. "
-            "Return a short title, the summary itself, and the approximate word count."
+        "You are a world-class academic summarizer and study coach.\n"
+        "Write EVERYTHING in the SAME language as the input text. "
+        "If the input is Serbian, use Serbian (including headings). "
+        "Be concise, precise, and exam-focused. "
+        "If information is missing or unclear, explicitly state that rather than inventing content."
+        "If the text is very short (<100 words), return it verbatim as the summary."
+        "Find key concepts, terms, and names, and include them in the summary. Summary must contain at least" \
+        " 15 percent of words in text that are the most important.\n"
         )
         resp = self._chat(system_prompt, text)
         return {
-            "title": "Summary",
+            "title": "Sažetak" if text.strip()[:30].isascii() is False else "Summary",
             "summary": resp.strip(),
             "word_count": len(resp.split())
         }
+
 
     def generate_quiz(self, text: str, config: dict) -> list:
         req = json.dumps({
