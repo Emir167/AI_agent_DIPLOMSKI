@@ -3,7 +3,7 @@ import json, time
 from groq import Groq
 from .base import AIProvider
 import os
-
+from groq._exceptions import RateLimitError 
 SYSTEM_QUIZ = (
   "You are a quiz generator. Use ONLY the provided context. "
   "If the context is insufficient, return an empty JSON array []. "
@@ -44,29 +44,86 @@ def _sanitize_json(txt: str) -> str:
             continue
     return "[]"
 
+
+SYSTEM_FLASHCARDS = (
+        "You are a flashcard generator that ONLY uses the provided context. "
+        "DETECT the language of the context and write the flashcards in that same language. "
+        "Return a STRICT JSON array of objects: [{\"front\": \"...\", \"back\": \"...\"}]. "
+        "Rules:\n"
+        "- Max {count} cards; return fewer only if the context truly lacks distinct facts.\n"
+        "- One atomic concept per card (definition, key idea, formula, step, cause→effect, term→example).\n"
+        "- Avoid duplicates, trivia, or vague statements; prefer syllabus-level facts and terminology.\n"
+        "- Keep it concise: each side ≤ 25 words; no markdown, no quotes, no numbering.\n"
+        "- Prefer fronts as short prompts/questions; backs as precise answers.\n"
+        "- If the context is long, prioritize: core definitions, theorems/rules, constraints, procedures, edge-cases.\n"
+        "- DO NOT invent facts not grounded in the context.\n"
+        "- Keep total output compact (token-aware). "
+        )
+
 class GroqProvider(AIProvider):
     def __init__(self, model: str = "llama-3.3-70b-versatile"):
-        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        api_key = os.getenv("GROQ_API_KEY")
+        self.client = Groq(api_key=api_key)
         self.model = model
+        self.fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant")  # npr. brži/jeftiniji
 
     def _chat(self, system: str, user: str, retries: int = 2) -> str:
         last = ""
+        model_to_use = self.model
         for i in range(retries + 1):
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user}
-                ],
-                temperature=0.2,
-            )
-            last = resp.choices[0].message.content or ""
-            # brzo izađi ako liči na JSON
-            if ("{" in last or "[" in last):
-                break
-            time.sleep(0.5)
+            try:
+                resp = self.client.chat.completions.create(
+                    model=model_to_use,
+                    messages=[{"role":"system","content":system},
+                              {"role":"user","content":user}],
+                    temperature=0.2,
+                )
+                last = resp.choices[0].message.content or ""
+                if "{" in last or "[" in last:
+                    break
+                return last
+            except RateLimitError as e:
+                # 1) probaj fallback model (jednom)
+                if model_to_use != self.fallback_model:
+                    model_to_use = self.fallback_model
+                    continue
+                # 2) zadnji pokušaj – ako i dalje 429, prosledi dalje (biće uhvaćeno spolja)
+                if i == retries:
+                    raise
+                time.sleep(1.5 * (i + 1))
+            except Exception:
+                if i == retries:
+                    raise
+                time.sleep(0.8 * (i + 1))
         return last
 
+    
+
+
+    def make_flashcards(self, context: str, n: int = 10) -> list:
+        req = json.dumps({
+            "count": int(max(1, n)),
+            "context": (context or "")[:4000]
+        })
+        req = json.dumps({
+            "count": int(max(1, n)),
+            "context": (context or "")[:3000]  # kraći context = manji trošak, manje halucinacija
+        })
+        content = self._chat(SYSTEM_FLASHCARDS, req)
+
+        try:
+            data = json.loads(_sanitize_json(content))
+            cards = []
+            if isinstance(data, list):
+                for it in data:
+                    front = (it.get("front") or "").strip()
+                    back  = (it.get("back") or "").strip()
+                    if front and back:
+                        cards.append({"front": front, "back": back})
+            return cards[:n]
+        except Exception:
+            # fallback: ništa
+            return []
     
     def summarize(self, text: str) -> dict:
         system_prompt = (
@@ -115,3 +172,29 @@ class GroqProvider(AIProvider):
             return {"correct": bool(obj.get("correct")), "reason": obj.get("reason","")}
         except Exception:
             return {"correct": False, "reason": "Parse error"}
+        
+        def _json_list_or_empty(txt: str):
+            try:
+                data = json.loads(_sanitize_json(txt))
+                return data if isinstance(data, list) else []
+            except Exception:
+                return []
+
+        SYSTEM_CARDS = (
+        "You are a flashcard generator. Use ONLY the provided context. "
+        "Return STRICT JSON list of objects: [{\"front\":\"...\",\"back\":\"...\"}, ...]. "
+        "No extra text."  
+        )
+
+        def make_flashcards(self, text: str, n: int) -> list:
+            req = json.dumps({"n": int(n), "context": text[:8000]})
+            content = self._chat(SYSTEM_CARDS, req)
+            cards = _json_list_or_empty(content)
+            # normalizuj shape
+            out = []
+            for c in cards[:n]:
+                front = (c.get("front") or "").strip()
+                back  = (c.get("back") or "").strip()
+                if front and back:
+                    out.append({"front": front, "back": back})
+            return out

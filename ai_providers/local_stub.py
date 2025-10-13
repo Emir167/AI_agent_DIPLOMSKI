@@ -3,10 +3,9 @@ from .base import AIProvider
 
 class LocalStub(AIProvider):
     def _sentences(self, text):
-        parts = re.split(r'[\\.!?]\\s+', text or '')
+        parts = re.split(r'[\.!\?]\s+', text or '')
         return [p.strip() for p in parts if p and len(p.strip()) > 0]
 
-    # ---- Summary ----
     def summarize(self, text: str) -> dict:
         sents = self._sentences(text)
         body = ' '.join(sents[:6]) if sents else (text or '')[:600]
@@ -55,3 +54,23 @@ class LocalStub(AIProvider):
         ok = bool(gt and ua and (gt in ua or ua in gt))
         why = "Substring match (stub) — upgrade to model for smarter judging."
         return {'correct': ok, 'reason': why}
+    
+    # --- NOVO: flashcards stub ---
+    def make_flashcards(self, text: str, n: int) -> list:
+        sents = self._sentences(text)
+        out = []
+        for i in range(min(n, max(1, len(sents)))):
+            s = sents[i]
+            q = f"Objasni ukratko: {s[:80]}..."
+            a = s if len(s) < 220 else s[:220] + "..."
+            out.append({"front": q, "back": a})
+        return out
+
+    # --- već imaš generate_quiz (ostavi kako jeste) ---
+
+    # (opciono) ako koristiš explainer preko LocalStub-a
+    def explain_topic(self, topic: str):
+        return {
+            "title": f"Objašnjenje: {topic}",
+            "body": f"Kratak pregled teme '{topic}'. Ovo je lokalni stub bez pravog AI-a.",
+        }

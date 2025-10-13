@@ -1,17 +1,25 @@
 import os, atexit, shutil, tempfile
 from dotenv import load_dotenv
+
+# UČITAJ .env NA SAMOM POČETKU
+BASE_DIR = os.path.dirname(__file__)
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, '.env'))
+
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from werkzeug.utils import secure_filename
+
+# TEK SAD import-uj servise koji koriste GROQ_API_KEY
 from services import grader  
 import services.planner as planner
 import services.coach as coach
+import services.rag as rag
 
 from models import (
     Base, Document, Summary,
     Quiz, Question, Flashcard,
-        StudyProfile, StudyPlan, StudySession
+    StudyProfile, StudyPlan, StudySession
 )
 import services.summarizer as summarizer
 import services.quizzer as quizzer
@@ -27,6 +35,7 @@ UPLOAD_DIR  = os.path.join(RUNTIME_DIR, 'uploads')
 GEN_DIR     = os.path.join(RUNTIME_DIR, 'generated')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(GEN_DIR, exist_ok=True)
+rag.set_store_dir(RUNTIME_DIR)  # sve ide u privremeni runtime folder
 
 # Opcionalno: ako želiš ponekad da PERSIST-uješ (za debug), setuj env PERSIST_RUN=1
 PERSIST_RUN = os.getenv('PERSIST_RUN') == '1'
@@ -46,12 +55,6 @@ print("GROQ_API_KEY set? ->", bool(os.getenv("GROQ_API_KEY")))
 print("Using GROQ_MODEL ->", os.getenv("GROQ_MODEL"))
 print("OLLAMA_MODEL ->", os.getenv("OLLAMA_MODEL"))
 
-
-BASE_DIR = os.path.dirname(__file__)
-UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
-GEN_DIR = os.path.join(BASE_DIR, 'generated')
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(GEN_DIR, exist_ok=True)
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev')
@@ -99,7 +102,7 @@ def upload():
         doc = Document(filename=fname, size_kb=size_kb, content=text)
         s.add(doc)
         s.commit()
-
+        rag.ensure_index(doc.id, doc.content)
         flash('File uploaded successfully.')
         return redirect(url_for('tools'))
 
@@ -111,7 +114,7 @@ def tools():
 
 # ============== SUMMARIES ==============
 
-@app.route('/summaries/create/<int:doc_id>', methods=['GET', 'POST'])
+@app.route('/summaries/create/<int:doc_id>', methods=['GET','POST'])
 def create_summary(doc_id):
     s = Session()
     doc = s.get(Document, doc_id)
@@ -119,15 +122,20 @@ def create_summary(doc_id):
         flash('Document not found.')
         return redirect(url_for('tools'))
 
-    data = summarizer.summarize(doc.content)
+    # ako dođe GET bez forme — napravi summary bez fokusa
+    focus = ""
+    if request.method == 'POST':
+        focus = (request.form.get('focus') or '').strip()
+
+    data = summarizer.summarize_via_rag(doc.id, doc.content, query=focus, max_chunks=5, top_k=5)
+
     sm = Summary(
         document_id=doc.id,
         title=data['title'],
         text=data['summary'],
         word_count=data['word_count']
     )
-    s.add(sm)
-    s.commit()
+    s.add(sm); s.commit()
     return redirect(url_for('summary_view', summary_id=sm.id))
 
 
@@ -178,7 +186,7 @@ def quiz_generate(doc_id):
         ] or ['Easy', 'Medium', 'Hard']
     }
 
-    items, used_chunk, used_provider = quizzer.generate_from_random_chunk(doc.content, cfg, target_words=350)
+    items, used_ctx, used_provider = quizzer.generate_from_rag(doc.id, doc.content, cfg, user_hint=request.form.get("hint",""))
 
 
     quiz = Quiz(document_id=doc.id, title='Practice Quiz', total_questions=len(items))
@@ -197,7 +205,8 @@ def quiz_generate(doc_id):
         ))
 
     s.commit()
-    return render_template('quiz_view.html', quiz=quiz, chunk_preview=used_chunk[:400], provider=used_provider)
+    return render_template('quiz_view.html', quiz=quiz)
+
 
 
 @app.get('/quiz/<int:quiz_id>')
@@ -257,12 +266,22 @@ def flashcards_create(doc_id):
         return redirect(url_for('tools'))
 
     n = int(request.form.get('count', 10))
-    cards = fc.make_cards(doc.content, n)
 
+    # 1) OBRIŠI POSTOJEĆE ZA TAJ DOKUMENT
+    s.query(Flashcard).filter_by(document_id=doc.id).delete(synchronize_session=False)
+    s.flush()  # opcionalno, da odmah “očisti” pre unosa
+
+    # 2) GENERIŠI NOVE
+    cards = fc.make_cards_from_rag(doc.id, doc.content, n)
+
+    # 3) UPISI SAMO NOVE
     for c in cards:
         s.add(Flashcard(document_id=doc.id, front=c['front'], back=c['back']))
+
     s.commit()
+    flash(f'Generated {len(cards)} flashcards.')
     return redirect(url_for('flashcards_view', doc_id=doc.id))
+
 
 @app.get('/flashcards/<int:doc_id>')
 def flashcards_view(doc_id):
@@ -392,8 +411,8 @@ def coach_ask():
     doc = s.query(Document).order_by(Document.created_at.desc()).first()
     plan = s.query(StudyPlan).order_by(StudyPlan.id.desc()).first()
     plan_info = f"{plan.start_date}→{plan.end_date}, strategy {plan.strategy}" if plan else "no plan"
-    text = doc.content if doc else ""
-    ans = coach.answer(q, text, plan_info)
+    ans = coach.answer(q, doc.content if doc else "", plan_info, doc_id=doc.id if doc else None)
+
     return render_template('coach.html', q=q, a=ans)
 
 if __name__ == '__main__':
