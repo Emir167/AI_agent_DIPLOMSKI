@@ -321,61 +321,43 @@ def explain_topic_post():
 
 # ------------------------------------------
 
-# ---- PLANNER ----
+# ---- PLANNER (LLM, bez RAG, bez dokumenata) ----
 @app.get('/planner')
 def planner_form():
-    s = Session()
-    docs = s.query(Document).order_by(Document.created_at.desc()).all()
-    prof = s.query(StudyProfile).first()
-    return render_template('planner_form.html', docs=docs, profile=prof)
+    # Forma samo prikuplja podatke o korisniku i njihov upit
+    return render_template('planner_form.html')
 
-@app.post('/planner/create')
-def planner_create():
-    s = Session()
-    doc_id = int(request.form['document_id'])
-    start  = request.form['start_date']
-    end    = request.form['end_date']
-    pref_start = request.form.get('pref_start','18:00')
-    pref_end   = request.form.get('pref_end','20:00')
-    level = request.form.get('level','Undergraduate')
-    learning_style = request.form.get('learning_style','mixed')
-    goals = request.form.get('goals','')
-    notes = request.form.get('notes','')
-    daily_minutes = int(request.form.get('daily_minutes', 90))
+@app.post('/planner/generate')
+def planner_generate():
+    # pokupimo sva polja
+    level          = (request.form.get('level') or 'Undergraduate').strip()
+    learning_style = (request.form.get('learning_style') or 'mixed').strip()
+    goals          = (request.form.get('goals') or '').strip()
+    notes          = (request.form.get('notes') or '').strip()
+    start_time     = (request.form.get('start_time') or '13:00').strip()
+    end_time       = (request.form.get('end_time') or '03:00').strip()
+    daily_minutes  = int(request.form.get('daily_minutes') or 360)
+    days           = int(request.form.get('days') or 10)
+    ask            = (request.form.get('ask') or '').strip()
 
-    doc = s.get(Document, doc_id)
-    if not doc:
-        flash("Document not found.")
+    if not ask:
+        flash("Unesi svoj zahtev/opis (npr. Šta spremaš, koliko strana, rok...)")
         return redirect(url_for('planner_form'))
 
-    # profil (jednostavno: uvek kreiramo/azuriramo 1 profil)
-    prof = s.query(StudyProfile).first()
-    if not prof:
-        prof = StudyProfile()
-        s.add(prof)
-    prof.level = level
-    prof.learning_style = learning_style
-    prof.goals = goals
-    prof.notes = notes
-    prof.pref_start = pref_start
-    prof.pref_end = pref_end
-    s.flush()
+    profile = {
+        "level": level,
+        "learning_style": learning_style,
+        "goals": goals,
+        "notes": notes,
+        "start_time": start_time,
+        "end_time": end_time,
+        "daily_minutes": daily_minutes,
+        "days": days,
+    }
 
-    plan_meta = planner.build_plan(doc, prof, start, end, daily_minutes=daily_minutes, strategy="1-3-7")
+    plan_text = planner.generate_personal_plan(profile, ask)
+    return render_template('planner_result.html', plan=plan_text, profile=profile, ask=ask)
 
-    sp = StudyPlan(
-        document_id=doc.id, profile_id=prof.id, title=f"Plan for {doc.filename}",
-        start_date=start, end_date=end, total_pages=plan_meta["pages"], strategy="1-3-7"
-    )
-    s.add(sp); s.flush()
-
-    for it in plan_meta["sessions"]:
-        s.add(StudySession(
-            plan_id=sp.id, date=it["date"], window=it["window"],
-            topic=it["topic"], kind=it["kind"], target_pages=it["target_pages"]
-        ))
-    s.commit()
-    return redirect(url_for('planner_view', plan_id=sp.id))
 
 @app.get('/planner/<int:plan_id>')
 def planner_view(plan_id):

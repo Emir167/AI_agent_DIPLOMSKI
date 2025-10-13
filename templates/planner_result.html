@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Personalizovani plan</h2>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h6 class="text-muted">Tvoj zahtev</h6>
+    <p class="mb-3">{{ ask }}</p>
+
+    <h6 class="text-muted">Profil (sažetak)</h6>
+    <ul class="small">
+      <li>Nivo: {{ profile.level }}</li>
+      <li>Stil učenja: {{ profile.learning_style }}</li>
+      <li>Ciljevi: {{ profile.goals or '—' }}</li>
+      <li>Napomene: {{ profile.notes or '—' }}</li>
+      <li>Dnevno: {{ profile.daily_minutes }} min ({{ profile.start_time }}–{{ profile.end_time }})</li>
+      <li>Broj dana: {{ profile.days }}</li>
+    </ul>
+
+    <hr>
+    <pre class="mb-0" style="white-space: pre-wrap;">{{ plan }}</pre>
+  </div>
+</div>
+
+<div class="mt-3">
+  <a class="btn btn-outline-secondary" href="{{ url_for('planner_form') }}">Nazad</a>
+</div>
+{% endblock %}
