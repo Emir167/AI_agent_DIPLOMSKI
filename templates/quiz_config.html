@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Configure Quiz</h2>
+<h2>Podesi kviz</h2>
 
 <form method="post" action="{{ url_for('quiz_generate', doc_id=doc_id) }}" class="card p-4 shadow-sm">
   <div class="row g-3">
     <div class="col-md-3">
-      <label class="form-label">Multiple Choice</label>
+      <label class="form-label">Višestruki izbor (MCQ)</label>
       <input type="number" name="mcq" value="5" min="0" class="form-control">
     </div>
     <div class="col-md-3">
-      <label class="form-label">True/False</label>
+      <label class="form-label">Tačno/Netačno (TF)</label>
       <input type="number" name="tf" value="5" min="0" class="form-control">
     </div>
     <div class="col-md-3">
-      <label class="form-label">Short Answer</label>
+      <label class="form-label">Kratak odgovor</label>
       <input type="number" name="short" value="5" min="0" class="form-control">
     </div>
     <div class="col-md-3">
-      <label class="form-label">Fill in the Blanks</label>
+      <label class="form-label">Popuni praznine</label>
       <input type="number" name="fill" value="5" min="0" class="form-control">
     </div>
   </div>
@@ -25,28 +25,25 @@
   <hr>
 
   <div class="mb-3">
-    <label class="form-label d-block">Difficulties</label>
+    <label class="form-label d-block">Težina</label>
     <div class="form-check form-check-inline">
       <input class="form-check-input" type="checkbox" name="easy" id="easy" checked>
-      <label class="form-check-label" for="easy">Easy</label>
+      <label class="form-check-label" for="easy">Lako</label>
     </div>
     <div class="form-check form-check-inline">
       <input class="form-check-input" type="checkbox" name="medium" id="medium" checked>
-      <label class="form-check-label" for="medium">Medium</label>
+      <label class="form-check-label" for="medium">Srednje</label>
     </div>
     <div class="form-check form-check-inline">
       <input class="form-check-input" type="checkbox" name="hard" id="hard" checked>
-      <label class="form-check-label" for="hard">Hard</label>
+      <label class="form-check-label" for="hard">Teško</label>
     </div>
   </div>
-
-  <div class="text-muted small mb-3">
-    The app will take a <em>random chunk</em> of your uploaded document (≈ 300–350 words) and generate questions from it.
-  </div>
+ 
 
   <div class="d-flex gap-2">
-    <button class="btn btn-primary">Generate Quiz</button>
-    <a class="btn btn-outline-secondary" href="{{ url_for('tools') }}">Back</a>
+    <button class="btn btn-primary">Generiši kviz</button>
+    <a class="btn btn-outline-primary" href="{{ url_for('tools') }}">Nazad</a>
   </div>
 </form>
 {% endblock %}

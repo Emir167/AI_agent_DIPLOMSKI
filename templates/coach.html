@@ -1,13 +1,15 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Study Coach</h2>
-<form method="post" class="card p-3 mb-3">
-  <input class="form-control mb-2" type="text" name="q" value="{{ q or '' }}" placeholder="Ask anything about your materials...">
-  <button class="btn btn-info">Ask</button>
+<h2>Trener učenja</h2>
+
+<form method="post" class="card p-3 mb-3 shadow-sm">
+  <input class="form-control mb-2" type="text" name="q" value="{{ q or '' }}" placeholder="Postavi pitanje u vezi sa učenjem, planom ili materijalom...">
+  <button class="btn btn-primary">Pitaj</button>
 </form>
+
 {% if a %}
-<div class="card p-3">
-  <div class="fw-semibold mb-2">Answer</div>
+<div class="card p-3 shadow-sm">
+  <div class="fw-semibold mb-2">Odgovor</div>
   <div>{{ a|safe }}</div>
 </div>
 {% endif %}
