@@ -14,7 +14,6 @@ def random_chunk(text: str, target_words: int = 300, overlap: int = 40) -> str:
         start = 0 if len(words) <= target_words else random.randint(0, max(0, len(words)-target_words))
         return " ".join(words[start:start+target_words])
 
-    # build windows by approximate word count
     windows = []
     buf = []
     count = 0
@@ -24,7 +23,6 @@ def random_chunk(text: str, target_words: int = 300, overlap: int = 40) -> str:
         count += w
         if count >= target_words:
             windows.append(" ".join(buf))
-            # overlap: keep tail
             tail_words = " ".join(buf).split()[-overlap:]
             buf = [" ".join(tail_words)]
             count = len(tail_words)

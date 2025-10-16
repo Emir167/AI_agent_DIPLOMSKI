@@ -11,7 +11,6 @@ class LocalStub(AIProvider):
         body = ' '.join(sents[:6]) if sents else (text or '')[:600]
         return {'title': 'Content Summary', 'summary': body, 'word_count': len(body.split())}
 
-    # ---- Quiz ----
     def generate_quiz(self, text: str, config: dict) -> list:
         n_mcq  = int(config.get('mcq', 5))
         n_tf   = int(config.get('tf', 5))
@@ -47,7 +46,6 @@ class LocalStub(AIProvider):
             })
         return out
 
-    # ---- Grading (simple substring fallback) ----
     def grade_freeform(self, question: str, ground_truth: str, user_answer: str) -> dict:
         gt = (ground_truth or '').strip().lower()
         ua = (user_answer or '').strip().lower()
@@ -55,7 +53,6 @@ class LocalStub(AIProvider):
         why = "Substring match (stub) — upgrade to model for smarter judging."
         return {'correct': ok, 'reason': why}
     
-    # --- NOVO: flashcards stub ---
     def make_flashcards(self, text: str, n: int) -> list:
         sents = self._sentences(text)
         out = []
@@ -66,9 +63,7 @@ class LocalStub(AIProvider):
             out.append({"front": q, "back": a})
         return out
 
-    # --- već imaš generate_quiz (ostavi kako jeste) ---
 
-    # (opciono) ako koristiš explainer preko LocalStub-a
     def explain_topic(self, topic: str):
         return {
             "title": f"Objašnjenje: {topic}",

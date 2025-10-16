@@ -62,7 +62,6 @@ class OllamaProvider(AIProvider):
             assert isinstance(items, list)
             return items
         except Exception:
-            # fallback minimal if model fails formatting
             return []
 
     def grade_freeform(self, question: str, ground_truth: str, user_answer: str) -> dict:

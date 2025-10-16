@@ -6,9 +6,13 @@ import os
 from groq._exceptions import RateLimitError 
 SYSTEM_QUIZ = (
   "You are a quiz generator. Use ONLY the provided context. "
-  "If the context is insufficient, return an empty JSON array []. "
-  "Questions must be grounded in the context (verbatim facts, names, terms). "
-  "Return STRICT JSON list with objects: "
+  "Language: detect the context language and write questions in that language. "
+  "Respect EXACT COUNTS per type: return exactly counts.mcq MCQ, counts.tf TF, "
+  "counts.short short-answer, and counts.fill cloze questions. "
+  "Distribute the requested difficulties (easy|medium|hard) across the returned items; "
+  "if some difficulty is missing in the request, do not use it. "
+  "If the context truly lacks material, return fewer ONLY for that type (but never more). "
+  "Output STRICT JSON array; each item is an object with fields: "
   "{kind('mcq'|'tf'|'short'|'fill'), difficulty('easy'|'medium'|'hard'), "
   "prompt, options(pipe-delimited for mcq/tf), correct, explanation}. "
   "No extra text."
@@ -19,6 +23,18 @@ SYSTEM_GRADER = (
   "Return STRICT JSON object: {\"correct\": true|false, \"reason\": \"...\"}."
 )
 
+def _json_list_or_empty(txt: str):
+        try:
+            data = json.loads(_sanitize_json(txt))
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+
+SYSTEM_CARDS = (
+        "You are a flashcard generator. Use ONLY the provided context. "
+        "Return STRICT JSON list of objects: [{\"front\":\"...\",\"back\":\"...\"}, ...]. "
+        "No extra text."  
+    )
 def _sanitize_json(txt: str) -> str:
     if not txt:
         return "[]"
@@ -173,28 +189,17 @@ class GroqProvider(AIProvider):
         except Exception:
             return {"correct": False, "reason": "Parse error"}
         
-        def _json_list_or_empty(txt: str):
-            try:
-                data = json.loads(_sanitize_json(txt))
-                return data if isinstance(data, list) else []
-            except Exception:
-                return []
+    
 
-        SYSTEM_CARDS = (
-        "You are a flashcard generator. Use ONLY the provided context. "
-        "Return STRICT JSON list of objects: [{\"front\":\"...\",\"back\":\"...\"}, ...]. "
-        "No extra text."  
-        )
-
-        def make_flashcards(self, text: str, n: int) -> list:
-            req = json.dumps({"n": int(n), "context": text[:8000]})
-            content = self._chat(SYSTEM_CARDS, req)
-            cards = _json_list_or_empty(content)
+    def make_flashcards(self, text: str, n: int) -> list:
+        req = json.dumps({"n": int(n), "context": text[:8000]})
+        content = self._chat(SYSTEM_CARDS, req)
+        cards = _json_list_or_empty(content)
             # normalizuj shape
-            out = []
-            for c in cards[:n]:
-                front = (c.get("front") or "").strip()
-                back  = (c.get("back") or "").strip()
-                if front and back:
-                    out.append({"front": front, "back": back})
-            return out
+        out = []
+        for c in cards[:n]:
+            front = (c.get("front") or "").strip()
+            back  = (c.get("back") or "").strip()
+            if front and back:
+                out.append({"front": front, "back": back})
+        return out

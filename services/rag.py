@@ -5,16 +5,13 @@ from typing import List, Dict
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# ------------- Podešavanje -------------
-# Disk lokacija indeksa: RUNTIME_DIR ćeš proslediti iz app.py
-RAG_ROOT = None  # postavi se spolja preko set_store_dir()
+
 
 _embedder = None
 
 def _get_model():
     global _embedder
     if _embedder is None:
-        # mali, brz, dobar za SR/EN
         _embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
     return _embedder
 
@@ -30,10 +27,8 @@ def _doc_dir(doc_id: int) -> str:
     os.makedirs(d, exist_ok=True)
     return d
 
-# ------------- Čankovanje -------------
 def _split_sentences(text: str) -> List[str]:
     text = (text or "").strip()
-    # grub razbijac na rečenice (srpski/eng)
     sents = re.split(r'(?<=[\.\?\!])\s+', text)
     return [s.strip() for s in sents if s and len(s.strip()) > 0]
 
@@ -51,7 +46,6 @@ def chunk_text(text: str, chunk_chars: int = 800, overlap: int = 120) -> List[st
         else:
             if buf:
                 chunks.append(buf)
-            # započni novi prozor sa overlap-om iz kraja starog
             if overlap > 0 and chunks:
                 tail = chunks[-1][-overlap:]
                 buf = (tail + " " + s).strip()
@@ -61,7 +55,6 @@ def chunk_text(text: str, chunk_chars: int = 800, overlap: int = 120) -> List[st
         chunks.append(buf)
     return chunks
 
-# ------------- Embedding / Disk I/O -------------
 def _paths(doc_id: int):
     d = _doc_dir(doc_id)
     return {
@@ -97,7 +90,6 @@ def _load(doc_id: int):
     chunks = meta["chunks"]
     return embs, chunks
 
-# ------------- Retrieval -------------
 def retrieve(doc_id: int, query: str, top_k: int = 5) -> List[Dict]:
     """Vrati top_k chunkova sa skorom."""
     if not has_index(doc_id):

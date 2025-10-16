@@ -29,11 +29,9 @@ def make_cards_from_rag(doc_id: int, full_text: str, n: int = 10) -> list:
     cards = prov.make_flashcards(ctx, n) or []
 
     if len(cards) < n:
-        # dopuni stub-om do traženog broja
         extra = LocalStub().make_flashcards(ctx, n - len(cards))
         cards.extend(extra)
 
-    # osiguraj format
     out = []
     for c in cards[:n]:
         f = (c.get("front") or "").strip()

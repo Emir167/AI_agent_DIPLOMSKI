@@ -5,7 +5,6 @@ class AIProvider(ABC):
     def summarize(self, text: str) -> dict:
         """Return {title, summary, word_count}."""
 
-    # Generate quiz questions from given text chunk using model.
     @abstractmethod
     def generate_quiz(self, text: str, config: dict) -> list:
         """
@@ -19,7 +18,6 @@ class AIProvider(ABC):
         }]
         """
 
-    # Judge freeform answers (short/fill) using model.
     @abstractmethod
     def grade_freeform(self, question: str, ground_truth: str, user_answer: str) -> dict:
         """

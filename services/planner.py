@@ -31,7 +31,7 @@ def _chat(system: str, user: str) -> str:
         )
 
 # ------------------------
-# SYSTEM PROMPT (LLM vodi sve)
+# SYSTEM PROMPT 
 # ------------------------
 SYSTEM_PLANNER = """\
 You are a specialized study coach. ALWAYS reply in the SAME LANGUAGE as the user input.

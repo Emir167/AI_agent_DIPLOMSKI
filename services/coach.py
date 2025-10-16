@@ -16,6 +16,5 @@ def answer(q: str, full_text: str, plan_info: str, doc_id: int = None):
     else:
         ctx = full_text[:4000]
     user = json.dumps({"question": q, "plan": plan_info, "context": ctx}, ensure_ascii=False)
-    # koristi već postojeći _provider._chat ako je public, ili napravi sličan method
-    resp = _provider._chat(SYSTEM_COACH, user)  # tvoja klasa već ima _chat
+    resp = _provider._chat(SYSTEM_COACH, user)
     return resp.strip()

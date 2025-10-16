@@ -74,7 +74,6 @@ def summarize_via_rag(doc_id: int, full_text: str, query: str = "", max_chunks: 
 def summarize(text: str) -> dict:
     """Direktan sažetak (bez RAG-a) — fallback/legacy."""
     resp = _provider.summarize(text)
-    # _provider.summarize već vraća dict sa title/summary/word_count
     return resp
 
 def summarize_via_rag(doc_id: int, full_text: str, *, query: str = "",
@@ -92,24 +91,18 @@ def summarize_via_rag(doc_id: int, full_text: str, *, query: str = "",
     q = (query or "Sažmi glavne ideje, definicije, relacije i primere iz dokumenta.").strip()
     hits = rag.retrieve(doc_id, q, top_k=top_k)
     if not hits:
-        # fallback: direktan sažetak ako RAG nema ništa
         return summarize(full_text)
 
-    # ograniči broj chunkova za map-fazu
     chunks = [h["text"] for h in hits[:max_chunks]]
 
-    # 3) MAP: sažetak po chunku
     partials = []
     for ch in chunks:
         part = _chat(SYSTEM_MAP, ch) or ""
         partials.append(part.strip())
 
-    # 4) REDUCE: spoji u JSON {title, summary}
     reduce_input = json.dumps({"partials": partials}, ensure_ascii=False)
     reduced_raw = _chat(SYSTEM_REDUCE, reduce_input) or ""
-    # pokušaj da izvučeš JSON (robustno)
     try:
-        # heuristika: find prvi JSON objekat
         t = reduced_raw.strip()
         start = t.find("{")
         end = t.rfind("}")
