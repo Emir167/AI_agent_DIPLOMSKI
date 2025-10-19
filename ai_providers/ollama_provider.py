@@ -2,7 +2,7 @@ import json
 import requests
 from .base import AIProvider
 
-OLLAMA_URL = "http://127.0.0.1:11434/api/chat"  # default
+OLLAMA_URL = "http://127.0.0.1:11434/api/chat"  
 
 SYSTEM_QUIZ = (
   "You are a quiz generator. From the given context, create questions with answers.\n"

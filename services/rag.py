@@ -16,7 +16,6 @@ def _get_model():
     return _embedder
 
 def set_store_dir(root_dir: str):
-    """Pozovi iz app.py da RAG radi u runtime folderu (privremeno)."""
     global RAG_ROOT
     RAG_ROOT = os.path.join(root_dir, "rag_store")
     os.makedirs(RAG_ROOT, exist_ok=True)
@@ -33,7 +32,6 @@ def _split_sentences(text: str) -> List[str]:
     return [s.strip() for s in sents if s and len(s.strip()) > 0]
 
 def chunk_text(text: str, chunk_chars: int = 800, overlap: int = 120) -> List[str]:
-    """Pravi chunkove otprilike ~chunk_chars koristeći rečenice i prozor sa overlapom."""
     sents = _split_sentences(text)
     if not sents:
         return [text[:chunk_chars]]
@@ -63,7 +61,6 @@ def _paths(doc_id: int):
     }
 
 def build_index(doc_id: int, text: str, chunk_chars=800, overlap=120) -> Dict:
-    """Napravi/overwrite indeks za dati dokument. Vraća meta info."""
     chunks = chunk_text(text, chunk_chars=chunk_chars, overlap=overlap)
     model = _get_model()
     embs = model.encode(chunks, convert_to_numpy=True, normalize_embeddings=True)
@@ -91,22 +88,21 @@ def _load(doc_id: int):
     return embs, chunks
 
 def retrieve(doc_id: int, query: str, top_k: int = 5) -> List[Dict]:
-    """Vrati top_k chunkova sa skorom."""
     if not has_index(doc_id):
         return []
 
     embs, chunks = _load(doc_id)
     model = _get_model()
     qv = model.encode([query], convert_to_numpy=True, normalize_embeddings=True)
-    sims = cosine_similarity(qv, embs)[0]  # (N,)
+    sims = cosine_similarity(qv, embs)[0] 
     idxs = np.argsort(-sims)[:max(1, top_k)]
     out = []
     for i in idxs:
         out.append({"text": chunks[int(i)], "score": float(sims[int(i)])})
     return out
 
-def build_context(doc_id: int, query: str, top_k: int = 5, max_chars: int = 3000) -> str:
-    """Spoji top_k chunkova u jedan kontekst (ograniči dužinu)."""
+def build_context(doc_id: int, query: str, top_k: int = 5, max_chars: int = 15000) -> str:
+    #Spajanje top_k chunkova u jedan kontekst
     hits = retrieve(doc_id, query, top_k=top_k) or []
     combined = "\n\n".join(h["text"] for h in hits)
     return combined[:max_chars] if combined else ""

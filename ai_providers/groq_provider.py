@@ -4,6 +4,7 @@ from groq import Groq
 from .base import AIProvider
 import os
 from groq._exceptions import RateLimitError 
+
 SYSTEM_QUIZ = (
   "You are a quiz generator. Use ONLY the provided context. "
   "Language: detect the context language and write questions in that language. "
@@ -19,47 +20,34 @@ SYSTEM_QUIZ = (
 )
 
 SYSTEM_GRADER = (
-  "You are a strict grader for short/freeform answers. "
-  "Return STRICT JSON object: {\"correct\": true|false, \"reason\": \"...\"}."
+  "You are an intelligent, fair grader for short/freeform quiz answers. "
+  "Return a STRICT JSON object: {\"correct\": true|false, \"reason\": \"...\"}. "
+  "Compare the student's answer ('user_answer') with the reference ('ground_truth'). "
+  "Accept answers that are correct in meaning, even if phrased differently, contain synonyms, "
+  "or differ slightly in word form, grammar, or word order. "
+  "Mark as correct if the student's answer conveys the same factual content or concept "
+  "as the ground truth, even if it's not identical textually. "
+  "Be tolerant to synonyms, abbreviations, and equivalent terminology. "
+  "Mark as incorrect only if the meaning is factually wrong or misses the key idea entirely. "
+  "Reason field must briefly explain why it was marked correct or incorrect. "
+  "Write explanations in the same language as the question."
 )
-
-def _json_list_or_empty(txt: str):
-        try:
-            data = json.loads(_sanitize_json(txt))
-            return data if isinstance(data, list) else []
-        except Exception:
-            return []
-
 SYSTEM_CARDS = (
         "You are a flashcard generator. Use ONLY the provided context. "
         "Return STRICT JSON list of objects: [{\"front\":\"...\",\"back\":\"...\"}, ...]. "
         "No extra text."  
     )
-def _sanitize_json(txt: str) -> str:
-    if not txt:
-        return "[]"
-    t = txt.strip()
-    # ukloni ```json ... ```
-    if t.startswith("```"):
-        t = t.strip("`")
-        # posle skidanja backticka nekad ostane "json\n{...}"
-        if t.lower().startswith("json"):
-            t = t[4:].strip()
-    # uzmi prvi JSON blok (lista ili objekat)
-    start = min([i for i in [t.find("["), t.find("{")] if i != -1], default=-1)
-    if start == -1:
-        return "[]"
-    # pokušaj da nađeš kraj skupa
-    # heuristika: probaj direktan json.loads; ako puca, skraćuj do poslednjeg ']' ili '}'
-    for end in range(len(t), start, -1):
-        chunk = t[start:end].strip()
-        try:
-            json.loads(chunk)
-            return chunk
-        except Exception:
-            continue
-    return "[]"
 
+SYSTEM_SUMMARIZER = (
+        "You are a world-class academic summarizer and study coach.\n"
+        "Write EVERYTHING in the SAME language as the input text. "
+        "If the input is Serbian, use Serbian (including headings). "
+        "Be concise, precise, and exam-focused. "
+        "If information is missing or unclear, explicitly state that rather than inventing content."
+        "If the text is very short (<100 words), return it verbatim as the summary."
+        "Find key concepts, terms, and names, and include them in the summary. Summary must contain at least" \
+        " 15 percent of words in text that are the most important.\n"
+        )
 
 SYSTEM_FLASHCARDS = (
         "You are a flashcard generator that ONLY uses the provided context. "
@@ -76,14 +64,49 @@ SYSTEM_FLASHCARDS = (
         "- Keep total output compact (token-aware). "
         )
 
+
+#Cistimo LLM output da bismo izvukli JSON
+def _sanitize_json(txt: str) -> str:
+    if not txt:
+        return "[]"
+    t = txt.strip()
+    
+    if t.startswith("```"):
+        t = t.strip("`")
+        if t.lower().startswith("json"):
+            t = t[4:].strip()
+
+    start = min([i for i in [t.find("["), t.find("{")] if i != -1], default=-1)
+    if start == -1:
+        return "[]"
+    for end in range(len(t), start, -1):
+        chunk = t[start:end].strip()
+        try:
+            json.loads(chunk)
+            return chunk
+        except Exception:
+            continue
+    return "[]"
+
+
+#Parsiranje JSON liste ili vracanje prazne liste
+def _json_list_or_empty(txt: str):
+        try:
+            data = json.loads(_sanitize_json(txt))
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+
 class GroqProvider(AIProvider):
     def __init__(self, model: str = "llama-3.3-70b-versatile"):
         api_key = os.getenv("GROQ_API_KEY")
         self.client = Groq(api_key=api_key)
         self.model = model
-        self.fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant")  # npr. brži/jeftiniji
+        self.fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant")
 
+#chat vraca odgovor iz LLM-a
     def _chat(self, system: str, user: str, retries: int = 2) -> str:
+        #retries -  broj pokusaja ako API vrati gresku
         last = ""
         model_to_use = self.model
         for i in range(retries + 1):
@@ -99,11 +122,9 @@ class GroqProvider(AIProvider):
                     break
                 return last
             except RateLimitError as e:
-                # 1) probaj fallback model (jednom)
                 if model_to_use != self.fallback_model:
                     model_to_use = self.fallback_model
                     continue
-                # 2) zadnji pokušaj – ako i dalje 429, prosledi dalje (biće uhvaćeno spolja)
                 if i == retries:
                     raise
                 time.sleep(1.5 * (i + 1))
@@ -114,45 +135,9 @@ class GroqProvider(AIProvider):
         return last
 
     
-
-
-    def make_flashcards(self, context: str, n: int = 10) -> list:
-        req = json.dumps({
-            "count": int(max(1, n)),
-            "context": (context or "")[:4000]
-        })
-        req = json.dumps({
-            "count": int(max(1, n)),
-            "context": (context or "")[:3000]  # kraći context = manji trošak, manje halucinacija
-        })
-        content = self._chat(SYSTEM_FLASHCARDS, req)
-
-        try:
-            data = json.loads(_sanitize_json(content))
-            cards = []
-            if isinstance(data, list):
-                for it in data:
-                    front = (it.get("front") or "").strip()
-                    back  = (it.get("back") or "").strip()
-                    if front and back:
-                        cards.append({"front": front, "back": back})
-            return cards[:n]
-        except Exception:
-            # fallback: ništa
-            return []
-    
     def summarize(self, text: str) -> dict:
-        system_prompt = (
-        "You are a world-class academic summarizer and study coach.\n"
-        "Write EVERYTHING in the SAME language as the input text. "
-        "If the input is Serbian, use Serbian (including headings). "
-        "Be concise, precise, and exam-focused. "
-        "If information is missing or unclear, explicitly state that rather than inventing content."
-        "If the text is very short (<100 words), return it verbatim as the summary."
-        "Find key concepts, terms, and names, and include them in the summary. Summary must contain at least" \
-        " 15 percent of words in text that are the most important.\n"
-        )
-        resp = self._chat(system_prompt, text)
+        
+        resp = self._chat(SYSTEM_SUMMARIZER, text)
         return {
             "title": "Sažetak" if text.strip()[:30].isascii() is False else "Summary",
             "summary": resp.strip(),
@@ -190,6 +175,7 @@ class GroqProvider(AIProvider):
             return {"correct": False, "reason": "Parse error"}
         
     
+    #iz teksta pravi n kartica, koristi do 8000 karaktera teksta
 
     def make_flashcards(self, text: str, n: int) -> list:
         req = json.dumps({"n": int(n), "context": text[:8000]})

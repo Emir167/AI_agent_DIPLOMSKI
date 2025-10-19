@@ -1,12 +1,9 @@
-# services/planner.py
 import os
 import textwrap
 from ai_providers.groq_provider import GroqProvider
 from ai_providers.local_stub import LocalStub
 
-# ------------------------
-# Provider
-# ------------------------
+
 def _get_provider():
     if os.getenv("GROQ_API_KEY"):
         try:
@@ -20,7 +17,6 @@ def _chat(system: str, user: str) -> str:
     try:
         return prov._chat(system, user)
     except Exception:
-        # Minimalan fallback (da UI ne pukne ako padne mreža/limit)
         return (
             "Tehnika učenja: Fokus blokovi (45/10) — duži fokus + kratke pauze.\n\n"
             "Dnevni plan (primer):\n"
@@ -30,9 +26,6 @@ def _chat(system: str, user: str) -> str:
             "Motivacija: „Napredak, ne perfekcija.“"
         )
 
-# ------------------------
-# SYSTEM PROMPT 
-# ------------------------
 SYSTEM_PLANNER = """\
 You are a specialized study coach. ALWAYS reply in the SAME LANGUAGE as the user input.
 
@@ -63,9 +56,6 @@ VALIDATION (do it silently before you answer):
 - [✔] Realistic pages per block if pages are mentioned
 """
 
-# ------------------------
-# USER PROMPT (kompaktan)
-# ------------------------
 def _build_user_prompt(profile: dict, ask: str) -> str:
     level        = (profile.get("level") or "Undergraduate").strip()
     style        = (profile.get("learning_style") or "mixed").strip()
@@ -97,12 +87,10 @@ def _build_user_prompt(profile: dict, ask: str) -> str:
         - Jasne stavke po vremenskim intervalima, bez tabela, bez suvišnog teksta.
     """)
 
-# ------------------------
-# Glavna funkcija (LLM radi sve)
-# ------------------------
+
 def generate_personal_plan(profile: dict, ask: str) -> str:
     start_time = (profile.get("start_time") or "13:00").strip()
-    end_time   = (profile.get("end_time") or "03:00").strip()
+    end_time   = (profile.get("end_time") or "20:00").strip()
     daily_min  = int(profile.get("daily_minutes") or 360)
     days       = int(profile.get("days") or 10)
 

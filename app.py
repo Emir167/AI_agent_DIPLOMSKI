@@ -24,20 +24,14 @@ from models import (
 import services.summarizer as summarizer
 import services.quizzer as quizzer
 import services.flashcards as fc
-import services.explainer as explainer
-# ...
-# ----- setup -----
-BASE_DIR = os.path.dirname(__file__)
-load_dotenv(dotenv_path=os.path.join(BASE_DIR, '.env'))
-# === RUNTIME (privremeni) direktorijum za jednu sesiju ===
+
 RUNTIME_DIR = tempfile.mkdtemp(prefix="studyplatform_")
 UPLOAD_DIR  = os.path.join(RUNTIME_DIR, 'uploads')
 GEN_DIR     = os.path.join(RUNTIME_DIR, 'generated')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(GEN_DIR, exist_ok=True)
-rag.set_store_dir(RUNTIME_DIR)  # sve ide u privremeni runtime folder
+rag.set_store_dir(RUNTIME_DIR)  
 
-# Opcionalno: ako želiš ponekad da PERSIST-uješ (za debug), setuj env PERSIST_RUN=1
 PERSIST_RUN = os.getenv('PERSIST_RUN') == '1'
 
 def _cleanup():
@@ -62,10 +56,8 @@ DB_PATH = os.path.join(RUNTIME_DIR, 'studyplatform.db')
 engine = create_engine(f"sqlite:///{DB_PATH}", future=True)
 Session = scoped_session(sessionmaker(bind=engine))
 
-# kreiraj tabele (idempotentno)
 Base.metadata.create_all(engine)
 
-# sidebar helper
 @app.context_processor
 def inject_docs():
     s = Session()
@@ -83,7 +75,7 @@ def upload():
     if request.method == 'POST':
         file = request.files.get('file')
         if not file or not file.filename:
-            flash('Select a PDF or TXT file.')
+            flash('Izaberite PDF ili TXT fajl.')
             return redirect(url_for('upload'))
 
         fname = secure_filename(file.filename)
@@ -122,7 +114,6 @@ def create_summary(doc_id):
         flash('Document not found.')
         return redirect(url_for('tools'))
 
-    # ako dođe GET bez forme — napravi summary bez fokusa
     focus = ""
     if request.method == 'POST':
         focus = (request.form.get('focus') or '').strip()
@@ -267,14 +258,11 @@ def flashcards_create(doc_id):
 
     n = int(request.form.get('count', 10))
 
-    # 1) OBRIŠI POSTOJEĆE ZA TAJ DOKUMENT
     s.query(Flashcard).filter_by(document_id=doc.id).delete(synchronize_session=False)
-    s.flush()  # opcionalno, da odmah “očisti” pre unosa
+    s.flush() 
 
-    # 2) GENERIŠI NOVE
     cards = fc.make_cards_from_rag(doc.id, doc.content, n)
 
-    # 3) UPISI SAMO NOVE
     for c in cards:
         s.add(Flashcard(document_id=doc.id, front=c['front'], back=c['back']))
 
@@ -303,33 +291,14 @@ def flashcards_mark(card_id):
         s.commit()
     return redirect(request.referrer or url_for('tools'))
 
-# ============== EXPLAIN TOPIC ==============
 
-@app.get('/explain')
-def explain_topic():
-    return render_template('explain_topic.html')
 
-@app.post('/explain')
-def explain_topic_post():
-    topic = (request.form.get('topic') or '').strip()
-    if not topic:
-        flash('Enter a topic.')
-        return redirect(url_for('explain_topic'))
-
-    data = explainer.explain(topic)
-    return render_template('explain_result.html', topic=topic, data=data)
-
-# ------------------------------------------
-
-# ---- PLANNER (LLM, bez RAG, bez dokumenata) ----
 @app.get('/planner')
 def planner_form():
-    # Forma samo prikuplja podatke o korisniku i njihov upit
     return render_template('planner_form.html')
 
 @app.post('/planner/generate')
 def planner_generate():
-    # pokupimo sva polja
     level          = (request.form.get('level') or 'Undergraduate').strip()
     learning_style = (request.form.get('learning_style') or 'mixed').strip()
     goals          = (request.form.get('goals') or '').strip()
@@ -358,27 +327,6 @@ def planner_generate():
     plan_text = planner.generate_personal_plan(profile, ask)
     return render_template('planner_result.html', plan=plan_text, profile=profile, ask=ask)
 
-
-@app.get('/planner/<int:plan_id>')
-def planner_view(plan_id):
-    s = Session()
-    plan = s.get(StudyPlan, plan_id)
-    if not plan:
-        flash("Plan not found.")
-        return redirect(url_for('planner_form'))
-    sessions = s.query(StudySession).filter_by(plan_id=plan.id).order_by(StudySession.date.asc()).all()
-    return render_template('planner_view.html', plan=plan, sessions=sessions)
-
-@app.post('/planner/toggle/<int:session_id>')
-def planner_toggle(session_id):
-    s = Session()
-    ss = s.get(StudySession, session_id)
-    if ss:
-        ss.completed = not ss.completed
-        s.commit()
-    return redirect(request.referrer or url_for('planner_view', plan_id=ss.plan_id if ss else 1))
-
-
 @app.get('/coach')
 def coach_view():
     return render_template('coach.html')
@@ -391,8 +339,9 @@ def coach_ask():
         return redirect(url_for('coach_view'))
     s = Session()
     doc = s.query(Document).order_by(Document.created_at.desc()).first()
-    plan = s.query(StudyPlan).order_by(StudyPlan.id.desc()).first()
-    plan_info = f"{plan.start_date}→{plan.end_date}, strategy {plan.strategy}" if plan else "no plan"
+   # plan = s.query(StudyPlan).order_by(StudyPlan.id.desc()).first()
+    #plan_info = f"{plan.start_date}→{plan.end_date}, strategy {plan.strategy}" if plan else "no plan"
+    plan_info = 'no plan'
     ans = coach.answer(q, doc.content if doc else "", plan_info, doc_id=doc.id if doc else None)
 
     return render_template('coach.html', q=q, a=ans)
