@@ -114,11 +114,7 @@ def create_summary(doc_id):
         flash('Document not found.')
         return redirect(url_for('tools'))
 
-    focus = ""
-    if request.method == 'POST':
-        focus = (request.form.get('focus') or '').strip()
-
-    data = summarizer.summarize_via_rag(doc.id, doc.content, query=focus, max_chunks=5, top_k=5)
+    data = summarizer.summarize_via_rag(doc.id, doc.content, query="", max_chunks=5, top_k=5)
 
     sm = Summary(
         document_id=doc.id,
@@ -205,7 +201,7 @@ def quiz_view(quiz_id):
     s = Session()
     quiz = s.get(Quiz, quiz_id)
     if not quiz:
-        flash('Quiz not found.')
+        flash('Kviz nije pronadjen.')
         return redirect(url_for('tools'))
     return render_template('quiz_view.html', quiz=quiz)
 
@@ -214,7 +210,7 @@ def quiz_grade(quiz_id):
     s = Session()
     quiz = s.get(Quiz, quiz_id)
     if not quiz:
-        flash('Quiz not found.')
+        flash('Kviz nije pronadjen.')
         return redirect(url_for('tools'))
 
     correct = 0
@@ -335,7 +331,7 @@ def coach_view():
 def coach_ask():
     q = (request.form.get('q') or '').strip()
     if not q:
-        flash("Ask something.")
+        flash("Pitaj nešto.")
         return redirect(url_for('coach_view'))
     s = Session()
     doc = s.query(Document).order_by(Document.created_at.desc()).first()

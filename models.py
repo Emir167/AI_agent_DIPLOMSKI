@@ -3,8 +3,8 @@ from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
 Base = declarative_base()
-page_count = Column(Integer, default=0)      # broj strana (PDF) ili procena iz TXT
-difficulty = Column(Integer, default=2)      # 1=easy,2=med,3=hard (ručno ili heuristika)
+page_count = Column(Integer, default=0)     
+difficulty = Column(Integer, default=2)   
 class Document(Base):
     __tablename__ = 'documents'
     id = Column(Integer, primary_key=True)
@@ -13,7 +13,6 @@ class Document(Base):
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # RELACIJE — bitno: postoji 'flashcards'
     summaries = relationship('Summary', back_populates='document', cascade='all,delete')
     quizzes   = relationship('Quiz',     back_populates='document', cascade='all,delete')
     flashcards= relationship('Flashcard',back_populates='document', cascade='all,delete')
@@ -80,12 +79,12 @@ class StudyProfile(Base):
     __tablename__ = 'study_profiles'
     id = Column(Integer, primary_key=True)
     age = Column(Integer, default=20)
-    level = Column(String(64), default='Undergraduate')  # srednja/undergrad/master/PhD
-    learning_style = Column(String(64), default='mixed') # visual/auditory/reading/kinesthetic/mixed
+    level = Column(String(64), default='Undergraduate') 
+    learning_style = Column(String(64), default='mixed') 
     notes = Column(Text, default='')
-    goals = Column(Text, default='')                     # npr. "prosek 9.0"
-    pref_start = Column(String(5), default='18:00')      # "HH:MM"
-    pref_end   = Column(String(5), default='20:00')      # "HH:MM"
+    goals = Column(Text, default='')                    
+    pref_start = Column(String(5), default='18:00')     
+    pref_end   = Column(String(5), default='20:00')   
 
 class StudyPlan(Base):
     __tablename__ = 'study_plans'
@@ -93,10 +92,10 @@ class StudyPlan(Base):
     document_id = Column(Integer, ForeignKey('documents.id'), nullable=False)
     profile_id  = Column(Integer, ForeignKey('study_profiles.id'), nullable=False)
     title = Column(String(255), default='Study Plan')
-    start_date = Column(String(10))  # "YYYY-MM-DD"
+    start_date = Column(String(10))  
     end_date   = Column(String(10))
     total_pages = Column(Integer, default=0)
-    strategy = Column(String(32), default='1-3-7')  # schedule reviews after +1,+3,+7 days if fit
+    strategy = Column(String(32), default='1-3-7')  
     created_at = Column(DateTime, default=datetime.utcnow)
 
     document = relationship('Document')
@@ -107,10 +106,10 @@ class StudySession(Base):
     __tablename__ = 'study_sessions'
     id = Column(Integer, primary_key=True)
     plan_id = Column(Integer, ForeignKey('study_plans.id'), nullable=False)
-    date = Column(String(10), nullable=False)                 # "YYYY-MM-DD"
-    window = Column(String(11), default='18:00-20:00')        # "HH:MM-HH:MM"
+    date = Column(String(10), nullable=False)                
+    window = Column(String(11), default='18:00-20:00')     
     topic = Column(String(255), default='Study')
-    kind  = Column(String(16), default='learn')               # learn|review|quiz
+    kind  = Column(String(16), default='learn')              
     target_pages = Column(Integer, default=0)
     completed = Column(Boolean, default=False)
 
