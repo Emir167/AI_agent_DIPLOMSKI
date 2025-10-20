@@ -1,0 +1,26 @@
+**Sažetak**
+
+Ja sam Emir Saračević, student finalne godine Informacionih sistema i tehnologija na Fakultetu organizacionih nauka, sa jakim interesom za razvoj softvera i koordinaciju projekata. Kroz akademski rad i stažiranja, stekao sam praktično iskustvo u full-stack web razvoju, alatima veštačke inteligencije i mašinskom učenju. Strastven sam u korišćenju tehnologije za rešavanje stvarnih problema, posebno u brzoj i timski orijentisanoj sredini.
+
+**Iskustvo**
+
+* **Koordinator projekta "DigiHack 2024"**, Fon Digital (jun 2024 - oktobar 2024)
+ + Vodio sam koordinaciju DigiHack projekta, dvonedeljne hakaton akcije, sa podrškom generalnih partnera NIS Gazprom i Informatika a.d.
+ + Upravljačkih timova preko četiri ključna sektora: HR & Logistika, Korporativni odnosi, Javni odnosi i IT & Dizajn.
+ + Nadgledao sam planiranje, izvršenje i rešavanje problema u realnom vremenu tokom oba hakaton vikenda, osiguravajući nesmetan tok događaja za 20 takmičarskih timova.
+* **Internist za istraživanje i razvoj veštačke inteligencije**, Informatika a.d. (decembar 2024 - januar 2025)
+ + Istraživao sam i eksperimentisao sa Text-to-Speech (TTS) i Speech-to-Text (STT) tehnologijama, fokusirajući se na segmentaciju govora i detekciju pauze.
+ + Razvio sam inteligentnog čatbota koristeći Retrieval-Augmented Generation (RAG) arhitekturu za odgovaranje na upite korisnika na osnovu lokalnih dokumenata (PDF, Excel) i spoljnih web podataka.
+* **Tim lider za HR "Future Leader" projekat**, Fon Digital (april 2024 - jun 2024)
+ + Vodio sam HR tim za univerzitetsko takmičenje u rešavanju studija, koordinirajući unutrašnje operacije i izvršenje zadataka.
+
+**Veštine**
+
+* Programiranje: Java (OOP, strukture podataka), Python, SQL, JavaScript, C# (osnovno)
+* Web razvoj: Django (REST API), React (hooks, routing), HTML, CSS
+* Kontrola verzija: Git & GitHub
+* Mašinsko učenje: scikit-learn, pandas, numpy, matplotlib
+* Alati za projekte: MS Project, Camunda Modeler
+* Microsoft Office (Word, Excel, PowerPoint)
+* Razvojni proces: SDLC (osnovno), faze softverskog projekta, planiranje zadataka
+* Jezici: Engleski: B2/C1

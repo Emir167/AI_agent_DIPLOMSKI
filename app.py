@@ -10,7 +10,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from werkzeug.utils import secure_filename
 
-# TEK SAD import-uj servise koji koriste GROQ_API_KEY
 from services import grader  
 import services.planner as planner
 import services.coach as coach
@@ -19,18 +18,23 @@ import services.rag as rag
 from models import (
     Base, Document, Summary,
     Quiz, Question, Flashcard,
-    StudyProfile, StudyPlan, StudySession
 )
 import services.summarizer as summarizer
 import services.quizzer as quizzer
 import services.flashcards as fc
 
-RUNTIME_DIR = tempfile.mkdtemp(prefix="studyplatform_")
+RUNTIME_DIR = os.path.join(BASE_DIR, "runtime")
 UPLOAD_DIR  = os.path.join(RUNTIME_DIR, 'uploads')
 GEN_DIR     = os.path.join(RUNTIME_DIR, 'generated')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(GEN_DIR, exist_ok=True)
 rag.set_store_dir(RUNTIME_DIR)  
+
+print("RUNTIME_DIR:", RUNTIME_DIR)
+print("UPLOAD_DIR :", UPLOAD_DIR)
+print("GEN_DIR    :", GEN_DIR)
+
+
 
 PERSIST_RUN = os.getenv('PERSIST_RUN') == '1'
 

@@ -3,8 +3,7 @@ from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
 Base = declarative_base()
-page_count = Column(Integer, default=0)     
-difficulty = Column(Integer, default=2)   
+
 class Document(Base):
     __tablename__ = 'documents'
     id = Column(Integer, primary_key=True)
@@ -66,51 +65,3 @@ class Flashcard(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     document = relationship('Document', back_populates='flashcards')
-
-# (opciono) Planer za ponavljanje
-class ReviewSchedule(Base):
-    __tablename__ = 'review_schedule'
-    id = Column(Integer, primary_key=True)
-    card_id = Column(Integer, ForeignKey('flashcards.id'), nullable=False)
-    scheduled_for = Column(DateTime, nullable=False)
-
-# --- novi modeli ---
-class StudyProfile(Base):
-    __tablename__ = 'study_profiles'
-    id = Column(Integer, primary_key=True)
-    age = Column(Integer, default=20)
-    level = Column(String(64), default='Undergraduate') 
-    learning_style = Column(String(64), default='mixed') 
-    notes = Column(Text, default='')
-    goals = Column(Text, default='')                    
-    pref_start = Column(String(5), default='18:00')     
-    pref_end   = Column(String(5), default='20:00')   
-
-class StudyPlan(Base):
-    __tablename__ = 'study_plans'
-    id = Column(Integer, primary_key=True)
-    document_id = Column(Integer, ForeignKey('documents.id'), nullable=False)
-    profile_id  = Column(Integer, ForeignKey('study_profiles.id'), nullable=False)
-    title = Column(String(255), default='Study Plan')
-    start_date = Column(String(10))  
-    end_date   = Column(String(10))
-    total_pages = Column(Integer, default=0)
-    strategy = Column(String(32), default='1-3-7')  
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    document = relationship('Document')
-    profile = relationship('StudyProfile')
-    sessions = relationship('StudySession', back_populates='plan', cascade='all,delete')
-
-class StudySession(Base):
-    __tablename__ = 'study_sessions'
-    id = Column(Integer, primary_key=True)
-    plan_id = Column(Integer, ForeignKey('study_plans.id'), nullable=False)
-    date = Column(String(10), nullable=False)                
-    window = Column(String(11), default='18:00-20:00')     
-    topic = Column(String(255), default='Study')
-    kind  = Column(String(16), default='learn')              
-    target_pages = Column(Integer, default=0)
-    completed = Column(Boolean, default=False)
-
-    plan = relationship('StudyPlan', back_populates='sessions')
