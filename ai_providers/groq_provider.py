@@ -32,11 +32,6 @@ SYSTEM_GRADER = (
   "Reason field must briefly explain why it was marked correct or incorrect. "
   "Write explanations in the same language as the question."
 )
-SYSTEM_CARDS = (
-        "You are a flashcard generator. Use ONLY the provided context. "
-        "Return STRICT JSON list of objects: [{\"front\":\"...\",\"back\":\"...\"}, ...]. "
-        "No extra text."  
-    )
 
 SYSTEM_SUMMARIZER = (
         "You are a world-class academic summarizer and study coach.\n"
@@ -49,7 +44,7 @@ SYSTEM_SUMMARIZER = (
         " 15 percent of words in text that are the most important.\n"
         )
 
-SYSTEM_FLASHCARDS = (
+SYSTEM_CARDS = (
         "You are a flashcard generator that ONLY uses the provided context. "
         "DETECT the language of the context and write the flashcards in that same language. "
         "Return a STRICT JSON array of objects: [{\"front\": \"...\", \"back\": \"...\"}]. "

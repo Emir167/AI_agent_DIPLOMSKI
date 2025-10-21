@@ -35,6 +35,15 @@ print("UPLOAD_DIR :", UPLOAD_DIR)
 print("GEN_DIR    :", GEN_DIR)
 
 
+for folder in [UPLOAD_DIR, GEN_DIR]:
+    for f in os.listdir(folder):
+        file_path = os.path.join(folder, f)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        except Exception:
+            pass
+
 
 PERSIST_RUN = os.getenv('PERSIST_RUN') == '1'
 
@@ -76,7 +85,19 @@ def home():
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
+    session = Session()
+    session.query(Document).delete()
+    session.commit()
+
+    for f in os.listdir(UPLOAD_DIR):
+        file_path = os.path.join(UPLOAD_DIR, f)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        except Exception:
+            pass
     if request.method == 'POST':
+        
         file = request.files.get('file')
         if not file or not file.filename:
             flash('Izaberite PDF ili TXT fajl.')

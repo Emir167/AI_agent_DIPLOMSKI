@@ -14,7 +14,7 @@
         <div class="fw-semibold">Kartica {{ loop.index }}</div>
         <form method="post" action="{{ url_for('flashcards_mark', card_id=c.id) }}">
           <button class="btn btn-sm {% if c.known %}btn-success{% else %}btn-outline-primary{% endif %}">
-            {% if c.known %}Označi kao tačno{% else %}Tačno{% endif %}
+            {% if c.known %}Tačno{% else %}Označi kao tačno{% endif %}
           </button>
         </form>
       </div>
