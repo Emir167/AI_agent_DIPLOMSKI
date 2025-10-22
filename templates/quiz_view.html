@@ -23,7 +23,7 @@
         <div class="fw-semibold">Pitanje {{ loop.index }}</div>
         <div class="d-flex align-items-center gap-2">
           <span class="badge bg-secondary text-capitalize">
-            {% if q.kind == 'mcq' %}višestruki izbor{% elif q.kind == 'tf' %}tačno/netačno{% elif q.kind == 'short' %}kratak odgovor{% else %}popuni praznine{% endif %}
+            {% if q.kind == 'mcq' %}višestruki izbor{% elif q.kind == 'tf' %}tačno/netačno{% elif q.kind == 'short' %}kratak odgovor{% else %}dopuna{% endif %}
           </span>
           <span class="badge bg-light text-dark text-capitalize">
             {% if q.difficulty == 'Easy' or q.difficulty == 'easy' %}lako{% elif q.difficulty == 'Medium' or q.difficulty == 'medium' %}srednje{% else %}teško{% endif %}

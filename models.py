@@ -33,7 +33,7 @@ class Quiz(Base):
     __tablename__ = 'quizzes'
     id = Column(Integer, primary_key=True)
     document_id = Column(Integer, ForeignKey('documents.id'), nullable=False)
-    title = Column(String(255), default='Practice Quiz')
+    title = Column(String(255), default='Kviz')
     total_questions = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
 

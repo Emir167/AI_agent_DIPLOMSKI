@@ -201,7 +201,7 @@ def quiz_generate(doc_id):
     items, used_ctx, used_provider = quizzer.generate_from_rag(doc.id, doc.content, cfg, user_hint=request.form.get("hint",""))
 
 
-    quiz = Quiz(document_id=doc.id, title='Practice Quiz', total_questions=len(items))
+    quiz = Quiz(document_id=doc.id, title='Kviz', total_questions=len(items))
     s.add(quiz)
     s.flush()
 
